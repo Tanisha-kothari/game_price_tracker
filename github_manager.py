@@ -121,19 +121,12 @@ class GitHubManager:
 
     def test_connection(self) -> bool:
         try:
-            print("=" * 60)
-            print("URL:", self._base_url)
-            print("Headers:", self._headers)
 
             resp = requests.get(
             self._base_url,
             headers=self._headers,
             timeout=20,
             )
-
-            print("Status:", resp.status_code)
-            print("Response:", resp.text)
-            print("=" * 60)
 
             resp.raise_for_status()
             return True

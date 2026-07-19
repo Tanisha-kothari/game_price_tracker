@@ -79,10 +79,6 @@ def init_github() -> Optional[GitHubManager]:
     owner = st.secrets.get("REPO_OWNER", os.environ.get("REPO_OWNER", ""))
     repo = st.secrets.get("REPO_NAME", os.environ.get("REPO_NAME", ""))
 
-    st.write("Token length:", len(token))
-    st.write("Owner:", owner)
-    st.write("Repo:", repo)
-
     gh = GitHubManager(token, owner, repo)
 
     # Debug the exact URL being used
