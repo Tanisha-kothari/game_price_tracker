@@ -78,13 +78,20 @@ def init_github() -> Optional[GitHubManager]:
     token = st.secrets.get("GITHUB_TOKEN", os.environ.get("GITHUB_TOKEN", ""))
     owner = st.secrets.get("REPO_OWNER", os.environ.get("REPO_OWNER", ""))
     repo = st.secrets.get("REPO_NAME", os.environ.get("REPO_NAME", ""))
-    if not token or not owner or not repo:
-        st.error("GitHub secrets not configured. Set GITHUB_TOKEN, REPO_OWNER, REPO_NAME in Streamlit Secrets.")
-        return None
+
+    st.write("Token length:", len(token))
+    st.write("Owner:", owner)
+    st.write("Repo:", repo)
+
     gh = GitHubManager(token, owner, repo)
+
+    # Debug the exact URL being used
+    st.write("GitHub URL:", gh._base_url)
+
     if not gh.test_connection():
-        st.error("Cannot connect to GitHub. Check your token and repository settings.")
+        st.error("Cannot connect to GitHub.")
         return None
+
     return gh
 
 

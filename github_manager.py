@@ -24,10 +24,19 @@ class GitHubManager:
         }
         self._base_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}"
 
-    def _request(self, method: str, endpoint: str, **kwargs) -> requests.Response:
-        url = f"{self._base_url}/{endpoint.lstrip('/')}"
-        resp = requests.request(method, url, headers=self._headers, timeout=20, **kwargs)
-        return resp
+    def _request(self, method: str, endpoint: str = "", **kwargs) -> requests.Response:
+        if endpoint:
+            url = f"{self._base_url}/{endpoint.lstrip('/')}"
+        else:
+            url = self._base_url
+
+        return requests.request(
+        method,
+        url,
+        headers=self._headers,
+        timeout=20,
+        **kwargs,
+    )
 
     def get_file_content(self, path: str) -> Optional[str]:
         try:
@@ -112,10 +121,23 @@ class GitHubManager:
 
     def test_connection(self) -> bool:
         try:
-            resp = self._request("GET", "")
+            print("=" * 60)
+            print("URL:", self._base_url)
+            print("Headers:", self._headers)
+
+            resp = requests.get(
+            self._base_url,
+            headers=self._headers,
+            timeout=20,
+            )
+
+            print("Status:", resp.status_code)
+            print("Response:", resp.text)
+            print("=" * 60)
+
             resp.raise_for_status()
-            logger.info("GitHub connection successful")
             return True
-        except requests.RequestException as e:
-            logger.error("GitHub connection failed: %s", e)
+
+        except Exception as e:
+            print("ERROR:", e)
             return False
