@@ -25,18 +25,8 @@ class GitHubManager:
         self._base_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}"
 
     def _request(self, method: str, endpoint: str = "", **kwargs) -> requests.Response:
-        if endpoint:
-            url = f"{self._base_url}/{endpoint.lstrip('/')}"
-        else:
-            url = self._base_url
-
-        return requests.request(
-        method,
-        url,
-        headers=self._headers,
-        timeout=20,
-        **kwargs,
-    )
+        url = f"{self._base_url}/{endpoint.lstrip('/')}" if endpoint else self._base_url
+        return requests.request(method, url, headers=self._headers, timeout=20, **kwargs)
 
     def get_file_content(self, path: str) -> Optional[str]:
         try:
@@ -48,8 +38,7 @@ class GitHubManager:
             data = resp.json()
             content = data.get("content", "")
             if content:
-                decoded = base64.b64decode(content).decode("utf-8")
-                return decoded
+                return base64.b64decode(content).decode("utf-8")
             return ""
         except requests.RequestException as e:
             logger.error("Failed to fetch %s from GitHub: %s", path, e)
@@ -68,10 +57,7 @@ class GitHubManager:
 
     def create_file(self, path: str, content: str, message: str) -> dict:
         encoded = base64.b64encode(content.encode("utf-8")).decode("utf-8")
-        payload = {
-            "message": message,
-            "content": encoded,
-        }
+        payload = {"message": message, "content": encoded}
         resp = self._request("PUT", f"contents/{path}", json=payload)
         if resp.status_code not in (201, 200):
             logger.error("GitHub create file failed: %d %s", resp.status_code, resp.text)
@@ -81,11 +67,7 @@ class GitHubManager:
 
     def update_file(self, path: str, content: str, message: str, sha: str) -> dict:
         encoded = base64.b64encode(content.encode("utf-8")).decode("utf-8")
-        payload = {
-            "message": message,
-            "content": encoded,
-            "sha": sha,
-        }
+        payload = {"message": message, "content": encoded, "sha": sha}
         resp = self._request("PUT", f"contents/{path}", json=payload)
         if resp.status_code not in (200, 201):
             logger.error("GitHub update file failed: %d %s", resp.status_code, resp.text)
@@ -106,8 +88,7 @@ class GitHubManager:
         return json.loads(content), True
 
     def save_games(self, games: list[dict], message: str = "Update games.json") -> dict:
-        content = dump_json_to_string(games)
-        return self.save_file("games.json", content, message)
+        return self.save_file("games.json", dump_json_to_string(games), message)
 
     def read_history(self) -> dict[str, dict[str, float]]:
         content = self.get_file_content("history.json")
@@ -116,21 +97,13 @@ class GitHubManager:
         return json.loads(content)
 
     def save_history(self, history: dict, message: str = "Update history.json") -> dict:
-        content = dump_json_to_string(history)
-        return self.save_file("history.json", content, message)
+        return self.save_file("history.json", dump_json_to_string(history), message)
 
     def test_connection(self) -> bool:
         try:
-
-            resp = requests.get(
-            self._base_url,
-            headers=self._headers,
-            timeout=20,
-            )
-
+            resp = requests.get(self._base_url, headers=self._headers, timeout=20)
             resp.raise_for_status()
             return True
-
         except Exception as e:
-            print("ERROR:", e)
+            logger.error("GitHub connection failed: %s", e)
             return False

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Daily price checker - runs via GitHub Actions to check all tracked game prices."""
+"""Daily price checker — runs via GitHub Actions to check all tracked game prices."""
 
 import os
 import sys

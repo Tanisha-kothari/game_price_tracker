@@ -1,14 +1,15 @@
 import re
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
-from datetime import datetime
 
 import requests
-from bs4 import BeautifulSoup
 
-from utils import extract_steam_app_id, extract_gog_game_id, extract_epic_slug, parse_price
+from utils import (
+    extract_steam_app_id, extract_gog_game_id, extract_epic_slug,
+    parse_price, usd_to_inr,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class SteamFetcher(BaseFetcher):
         if not app_id:
             return GameDetails()
         try:
-            api_url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
+            api_url = f"https://store.steampowered.com/api/appdetails?appids={app_id}&cc=in&l=en"
             resp = requests.get(api_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
             resp.raise_for_status()
             data = resp.json()
@@ -62,9 +63,12 @@ class SteamFetcher(BaseFetcher):
             if price_info:
                 current_price = price_info.get("final", 0) / 100.0
                 currency = price_info.get("currency", "USD")
+                if currency != "INR":
+                    current_price = usd_to_inr(current_price)
+                    currency = "INR"
             else:
                 current_price = None
-                currency = "USD"
+                currency = "INR"
             return GameDetails(
                 name=name,
                 current_price=current_price,
@@ -102,6 +106,9 @@ class EpicFetcher(BaseFetcher):
             price_data = self._fetch_price(slug)
             current_price = price_data.get("price")
             currency = price_data.get("currency", "USD")
+            if current_price is not None and currency != "INR":
+                current_price = usd_to_inr(current_price)
+                currency = "INR"
             return GameDetails(
                 name=name,
                 current_price=current_price,
@@ -153,10 +160,15 @@ class GOGFetcher(BaseFetcher):
             cover = ""
             images = data.get("images", {})
             if images.get("logo"):
-                cover = "https:" + images["logo"] if images["logo"].startswith("//") else images["logo"]
+                cover = images["logo"]
+                if cover.startswith("//"):
+                    cover = "https:" + cover
             price_data = self._fetch_price(game_id)
             current_price = price_data.get("price")
             currency = price_data.get("currency", "USD")
+            if current_price is not None and currency != "INR":
+                current_price = usd_to_inr(current_price)
+                currency = "INR"
             return GameDetails(
                 name=name,
                 current_price=current_price,
