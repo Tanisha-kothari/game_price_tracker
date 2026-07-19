@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "steam_990080",
+    "name": "Hogwarts Legacy",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/990080/Hogwarts_Legacy/",
+    "current_price": 3999.0,
+    "target_price": null,
+    "lowest_price": 3999.0,
+    "last_checked": "2026-07-19",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/a3cdc6f40d97df8ac993679c2dd1edeb5222421e/header.jpg?t=1778797474"
+  }
+]
