@@ -1,11 +1,10 @@
 import base64
-import json
 import logging
 from typing import Optional
 
 import requests
 
-from utils import dump_json_to_string
+from database import dump_games, dump_history
 
 logger = logging.getLogger(__name__)
 
@@ -81,23 +80,11 @@ class GitHubManager:
             return self.update_file(path, content, message, sha)
         return self.create_file(path, content, message)
 
-    def read_games(self) -> tuple[list[dict], bool]:
-        content = self.get_file_content("games.json")
-        if content is None:
-            return [], False
-        return json.loads(content), True
-
     def save_games(self, games: list[dict], message: str = "Update games.json") -> dict:
-        return self.save_file("games.json", dump_json_to_string(games), message)
-
-    def read_history(self) -> dict[str, dict[str, float]]:
-        content = self.get_file_content("history.json")
-        if content is None:
-            return {}
-        return json.loads(content)
+        return self.save_file("games.json", dump_games(games), message)
 
     def save_history(self, history: dict, message: str = "Update history.json") -> dict:
-        return self.save_file("history.json", dump_json_to_string(history), message)
+        return self.save_file("history.json", dump_history(history), message)
 
     def test_connection(self) -> bool:
         try:

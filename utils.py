@@ -4,7 +4,7 @@ import csv
 import io
 import logging
 import time
-from datetime import datetime, date
+from datetime import date
 from typing import Optional, Any
 from urllib.parse import urlparse
 
@@ -16,12 +16,6 @@ STORE_DOMAINS = {
     "steam": ["store.steampowered.com", "steamcommunity.com"],
     "epic": ["store.epicgames.com", "epicgames.com"],
     "gog": ["gog.com", "www.gog.com"],
-}
-
-STORE_NAMES = {
-    "steam": "Steam",
-    "epic": "Epic Games",
-    "gog": "GOG",
 }
 
 INR_CACHE: dict[str, Any] = {"rate": None, "timestamp": 0}
@@ -55,6 +49,28 @@ def usd_to_inr(usd_amount: Optional[float]) -> Optional[float]:
         return None
     rate = get_usd_to_inr_rate()
     return round(usd_amount * rate, 2)
+
+
+def inr_to_usd(inr_amount: Optional[float]) -> Optional[float]:
+    if inr_amount is None:
+        return None
+    rate = get_usd_to_inr_rate()
+    return round(inr_amount / rate, 2)
+
+
+def convert_price(
+    amount: Optional[float],
+    from_currency: str,
+    to_currency: str,
+) -> Optional[float]:
+    if amount is None or from_currency == to_currency:
+        return amount
+    if from_currency == "USD" and to_currency == "INR":
+        return usd_to_inr(amount)
+    if from_currency == "INR" and to_currency == "USD":
+        return inr_to_usd(amount)
+    logger.warning("Unsupported currency conversion: %s -> %s", from_currency, to_currency)
+    return None
 
 
 def detect_store(url: str) -> Optional[str]:
@@ -91,10 +107,6 @@ def today_str() -> str:
     return date.today().isoformat()
 
 
-def now_str() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
 def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(url)
@@ -103,25 +115,18 @@ def is_valid_url(url: str) -> bool:
         return False
 
 
-def parse_price(price_str: str) -> Optional[float]:
-    if not price_str or price_str == "N/A":
-        return None
-    cleaned = re.sub(r"[^\d.,]", "", price_str)
-    cleaned = cleaned.replace(",", ".")
-    try:
-        return float(cleaned)
-    except ValueError:
-        return None
-
-
 def format_inr(amount: Optional[float]) -> str:
     if amount is None:
         return "N/A"
-    s = f"{amount:,.2f}"
+    whole = int(amount) if amount == int(amount) else None
+    if whole is not None:
+        s = f"{whole:,}"
+    else:
+        s = f"{amount:,.2f}"
     return f"\u20b9{s}"
 
 
-def format_price(price: Optional[float], currency: str = "USD") -> str:
+def format_price(price: Optional[float], currency: str = "INR") -> str:
     if price is None:
         return "N/A"
     if currency == "INR":
@@ -130,59 +135,101 @@ def format_price(price: Optional[float], currency: str = "USD") -> str:
     symbol = symbols.get(currency, currency + " ")
     if currency == "PLN":
         return f"{price:.2f}{symbol}"
+    whole = int(price) if price == int(price) else None
+    if whole is not None and currency == "USD":
+        return f"{symbol}{whole:,}"
     return f"{symbol}{price:.2f}"
 
 
-def display_price_inr(price: Optional[float], currency: str = "USD") -> str:
-    if price is None:
-        return "N/A"
-    if currency == "INR":
-        return format_inr(price)
-    return format_inr(usd_to_inr(price))
+def _resolve_currency(game: dict, field: str) -> str:
+    from database import get_price_currency
+    return get_price_currency(game, field)
 
 
-def get_display_price(price: Optional[float], currency: str = "USD") -> Optional[float]:
-    if price is None:
-        return None
-    if currency == "INR":
-        return price
-    return usd_to_inr(price)
+PRICE_EXPORT_FIELDS = ("current_price", "target_price", "lowest_price")
+
+
+def _build_fieldnames(games: list[dict]) -> list[str]:
+    preferred = [
+        "id", "name", "store", "url",
+        "current_price", "current_currency",
+        "lowest_price", "lowest_currency",
+        "target_price", "target_currency",
+        "last_checked", "cover_image", "currency",
+    ]
+    keys: set[str] = set()
+    for g in games:
+        keys.update(g.keys())
+    ordered = [k for k in preferred if k in keys]
+    remaining = sorted(k for k in keys if k not in ordered)
+    return ordered + remaining
 
 
 def games_to_csv(games: list[dict]) -> str:
     output = io.StringIO()
-    fieldnames = [
-        "id", "name", "store", "url",
-        "current_price", "currency", "current_price_inr",
-        "target_price", "target_price_inr",
-        "lowest_price", "lowest_price_inr",
-        "last_checked", "cover_image",
-    ]
-    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    base_fields = _build_fieldnames(games)
+    price_fields = [f for f in PRICE_EXPORT_FIELDS if f in base_fields]
+    fieldnames = base_fields + [f"{f}_display" for f in price_fields]
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
     writer.writeheader()
     for game in games:
         row = dict(game)
-        row["current_price_inr"] = display_price_inr(game.get("current_price"), game.get("currency", "USD"))
-        row["target_price_inr"] = display_price_inr(game.get("target_price"), game.get("currency", "USD"))
-        row["lowest_price_inr"] = display_price_inr(game.get("lowest_price"), game.get("currency", "USD"))
+        for f in price_fields:
+            currency = _resolve_currency(game, f)
+            row[f"{f}_display"] = format_price(game.get(f), currency)
         writer.writerow(row)
     return output.getvalue()
 
 
-def history_to_csv(history: dict[str, dict[str, float]]) -> str:
+def games_to_json(games: list[dict]) -> str:
+    enriched = []
+    for g in games:
+        entry = dict(g)
+        for f in PRICE_EXPORT_FIELDS:
+            if f in entry:
+                currency = _resolve_currency(g, f)
+                entry[f"{f}_display"] = format_price(g.get(f), currency)
+        enriched.append(entry)
+    return json.dumps(enriched, indent=2, ensure_ascii=False)
+
+
+def history_to_csv(history: dict[str, dict[str, Any]]) -> str:
+    from database import HISTORY_CURRENCY_KEY
+
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["game_id", "date", "price_usd", "price_inr"])
+    writer.writerow(["game_id", "date", "price", "currency", "price_display"])
     for game_id, dates in history.items():
+        currency = dates.get(HISTORY_CURRENCY_KEY, "INR")
         for d, price in sorted(dates.items()):
-            inr_price = usd_to_inr(price)
-            writer.writerow([game_id, d, price, inr_price])
+            if d == HISTORY_CURRENCY_KEY:
+                continue
+            if not isinstance(price, (int, float)):
+                continue
+            writer.writerow([game_id, d, price, currency, format_price(price, currency)])
     return output.getvalue()
-
-
-def load_json_from_string(content: str) -> Any:
-    return json.loads(content)
 
 
 def dump_json_to_string(data: Any) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False)
+
+
+def render_sparkline_svg(prices: list[float], width: int = 120, height: int = 32) -> str:
+    if len(prices) < 2:
+        return ""
+    mn, mx = min(prices), max(prices)
+    span = mx - mn or 1.0
+    step = width / (len(prices) - 1)
+    points = []
+    for i, p in enumerate(prices):
+        x = i * step
+        y = height - ((p - mn) / span) * (height - 4) - 2
+        points.append(f"{x:.1f},{y:.1f}")
+    polyline = " ".join(points)
+    return (
+        f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
+        f'class="sparkline" aria-hidden="true">'
+        f'<polyline fill="none" stroke="#22c55e" stroke-width="2" '
+        f'stroke-linecap="round" stroke-linejoin="round" points="{polyline}"/>'
+        f"</svg>"
+    )

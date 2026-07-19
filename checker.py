@@ -39,8 +39,9 @@ def main():
     from database import (
         load_games, load_history, update_game_price, update_price_history,
         detect_price_change, dump_games, dump_history,
+        migrate_games, migrate_history, get_price_currency, is_lower_price,
     )
-    from price_api import fetch_current_price
+    from price_api import fetch_game_details
     from notifier import send_price_alert, send_summary_email
     from utils import format_price
 
@@ -57,6 +58,14 @@ def main():
     history_raw = gh.get_file_content("history.json")
     history = load_history(history_raw) if history_raw else {}
 
+    games, games_migrated = migrate_games(games)
+    history, history_migrated = migrate_history(history, games)
+
+    if games_migrated:
+        logger.info("Migrated games to per-price currency model")
+    if history_migrated:
+        logger.info("Migrated history currency data")
+
     logger.info("Checking prices for %d game(s)...", len(games))
     alerts = []
     any_change = False
@@ -67,24 +76,33 @@ def main():
         url = game["url"]
         name = game["name"]
         target_price = game.get("target_price")
-        currency = game.get("currency", "USD")
+        target_currency = get_price_currency(game, "target_price")
 
         try:
-            price = fetch_current_price(store, url)
+            details = fetch_game_details(store, url)
         except Exception as e:
             logger.error("Failed to check price for %s (%s): %s", name, game_id, e)
             continue
+
+        price = details.current_price
+        currency = details.currency
 
         if price is None:
             logger.warning("Could not fetch price for %s (%s)", name, game_id)
             continue
 
-        games = update_game_price(games, game_id, price, currency)
-        history = update_price_history(history, game_id, price)
+        old_lowest = game.get("lowest_price")
+        old_lowest_currency = get_price_currency(game, "lowest_price")
 
-        diff = detect_price_change(history, game_id, price)
-        lowest_price = game.get("lowest_price")
-        is_new_low = lowest_price is not None and (game.get("current_price") is None or price < lowest_price)
+        games = update_game_price(games, game_id, price, currency)
+        history = update_price_history(history, game_id, price, currency)
+
+        updated = next(g for g in games if g["id"] == game_id)
+        diff = detect_price_change(history, game_id, price, currency)
+        is_new_low = (
+            old_lowest is not None
+            and is_lower_price(price, currency, old_lowest, old_lowest_currency)
+        )
 
         if diff is not None:
             any_change = True
@@ -100,8 +118,10 @@ def main():
                 "game_id": game_id,
                 "currency": currency,
                 "cover_image": game.get("cover_image", ""),
-                "lowest_price": game.get("lowest_price"),
+                "lowest_price": updated.get("lowest_price"),
+                "lowest_currency": get_price_currency(updated, "lowest_price"),
                 "target_price": target_price,
+                "target_currency": target_currency,
                 "is_new_low": is_new_low,
             })
             logger.info("Price changed for %s: diff=%s", name, format_price(diff, currency))
@@ -111,14 +131,20 @@ def main():
                     send_price_alert(
                         EMAIL_ADDRESS, EMAIL_PASSWORD, NOTIFY_TO,
                         name, store, price, prev_price, diff,
-                        game.get("lowest_price"), target_price,
+                        updated.get("lowest_price"),
+                        get_price_currency(updated, "lowest_price"),
+                        target_price, target_currency,
                         game.get("cover_image", ""), currency, is_new_low,
                     )
                 except Exception as e:
                     logger.error("Failed to send alert email for %s: %s", name, e)
 
+    commit_msg = "chore: update game prices"
+    if games_migrated or history_migrated:
+        commit_msg = "chore: migrate and update game prices"
+
     updated_games_content = dump_games(games)
-    gh.save_file("games.json", updated_games_content, "chore: update game prices")
+    gh.save_file("games.json", updated_games_content, commit_msg)
 
     updated_history_content = dump_history(history)
     gh.save_file("history.json", updated_history_content, "chore: update price history")

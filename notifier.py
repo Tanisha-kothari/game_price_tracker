@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
-from utils import display_price_inr, format_price, today_str, format_inr
+from utils import format_price, today_str
 
 logger = logging.getLogger(__name__)
 
@@ -16,23 +16,24 @@ def build_price_email(
     previous_price: Optional[float],
     price_diff: Optional[float],
     lowest_price: Optional[float],
+    lowest_currency: str,
     target_price: Optional[float],
+    target_currency: Optional[str],
     cover_image: str,
-    currency: str = "USD",
+    currency: str = "INR",
     is_new_low: bool = False,
 ) -> str:
-    price_str = display_price_inr(current_price, currency)
-    prev_str = display_price_inr(previous_price, currency)
-    lowest_str = display_price_inr(lowest_price, currency)
-    target_str = display_price_inr(target_price, currency) if target_price is not None else "Not set"
+    price_str = format_price(current_price, currency)
+    prev_str = format_price(previous_price, currency)
+    lowest_str = format_price(lowest_price, lowest_currency)
+    target_str = (
+        format_price(target_price, target_currency)
+        if target_price is not None and target_currency
+        else "Not set"
+    )
 
     if price_diff is not None:
-        diff_abs = abs(price_diff)
-        diff_inr = current_price is not None and currency == "INR"
-        if diff_inr:
-            diff_str = format_inr(diff_abs)
-        else:
-            diff_str = format_price(diff_abs, currency)
+        diff_str = format_price(abs(price_diff), currency)
         if price_diff < 0:
             change_html = f'<span style="color:#22c55e">\u25bc Down by {diff_str}</span>'
         else:
@@ -41,25 +42,49 @@ def build_price_email(
         change_html = '<span style="color:#6b7280">No change</span>'
 
     reached_target = ""
-    if target_price is not None and current_price is not None and current_price <= target_price:
-        reached_target = '<p style="color:#22c55e; font-weight:bold; font-size:18px;">\u2705 Target price reached!</p>'
+    if (
+        target_price is not None
+        and current_price is not None
+        and target_currency
+        and currency == target_currency
+        and current_price <= target_price
+    ):
+        reached_target = (
+            '<p style="color:#22c55e; font-weight:bold; font-size:18px;">'
+            "\u2705 Target price reached!</p>"
+        )
 
     new_low = ""
     if is_new_low:
-        new_low = '<p style="color:#f59e0b; font-weight:bold; font-size:16px;">\ud83c\udf1f New all-time low!</p>'
+        new_low = (
+            '<p style="color:#f59e0b; font-weight:bold; font-size:16px;">'
+            "\ud83c\udf1f New all-time low!</p>"
+        )
 
     cover_html = ""
     if cover_image:
-        cover_html = f'<img src="{cover_image}" alt="{game_name}" style="width:100%; max-width:460px; border-radius:12px; margin-bottom:16px;">'
+        cover_html = (
+            f'<img src="{cover_image}" alt="{game_name}" '
+            f'style="width:100%; max-width:460px; border-radius:12px; margin-bottom:16px;">'
+        )
 
     store_logo = ""
     store_lower = store.lower()
     if "steam" in store_lower:
-        store_logo = '<span style="display:inline-block; background:#1b2838; color:#66c0f4; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:600;">STEAM</span>'
+        store_logo = (
+            '<span style="display:inline-block; background:#1b2838; color:#66c0f4; '
+            'padding:4px 14px; border-radius:20px; font-size:12px; font-weight:600;">STEAM</span>'
+        )
     elif "epic" in store_lower:
-        store_logo = '<span style="display:inline-block; background:#121212; color:#ffffff; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:600;">EPIC GAMES</span>'
+        store_logo = (
+            '<span style="display:inline-block; background:#121212; color:#ffffff; '
+            'padding:4px 14px; border-radius:20px; font-size:12px; font-weight:600;">EPIC GAMES</span>'
+        )
     elif "gog" in store_lower:
-        store_logo = '<span style="display:inline-block; background:#2b2b2b; color:#d2b48c; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:600;">GOG</span>'
+        store_logo = (
+            '<span style="display:inline-block; background:#2b2b2b; color:#d2b48c; '
+            'padding:4px 14px; border-radius:20px; font-size:12px; font-weight:600;">GOG</span>'
+        )
 
     html = f"""<!DOCTYPE html>
 <html>
@@ -171,16 +196,19 @@ def send_price_alert(
     previous_price: Optional[float],
     price_diff: Optional[float],
     lowest_price: Optional[float],
+    lowest_currency: str,
     target_price: Optional[float],
+    target_currency: Optional[str],
     cover_image: str,
-    currency: str = "USD",
+    currency: str = "INR",
     is_new_low: bool = False,
 ) -> bool:
-    price_display = display_price_inr(current_price, currency)
+    price_display = format_price(current_price, currency)
     subject = f"\ud83d\udcc8 Price Alert: {game_name} - {price_display}"
     html = build_price_email(
         game_name, store, current_price, previous_price, price_diff,
-        lowest_price, target_price, cover_image, currency, is_new_low,
+        lowest_price, lowest_currency, target_price, target_currency,
+        cover_image, currency, is_new_low,
     )
     return send_email(
         "smtp.gmail.com", 587, email_address, email_password,

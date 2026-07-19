@@ -1,4 +1,3 @@
-import re
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -6,9 +5,16 @@ from typing import Optional
 
 import requests
 
+# ─────────────────────────────────────────────
+# price_api.py — Fetchers for Steam, Epic, GOG
+# Every price returned carries its own currency.
+# Steam: cc=in, never converted.
+# Epic / GOG: USD → INR converted at fetch time.
+# ─────────────────────────────────────────────
+
 from utils import (
     extract_steam_app_id, extract_gog_game_id, extract_epic_slug,
-    parse_price, usd_to_inr,
+    usd_to_inr,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,7 +33,7 @@ HEADERS = {
 class GameDetails:
     name: str = "Unknown Game"
     current_price: Optional[float] = None
-    currency: str = "USD"
+    currency: str = "INR"
     cover_image: str = ""
     store_id: str = ""
 
@@ -43,45 +49,51 @@ class BaseFetcher(ABC):
 
 
 class SteamFetcher(BaseFetcher):
+    DEFAULT_CURRENCY = "INR"
+
+    def _fetch_details(self, app_id: str) -> dict:
+        url = f"https://store.steampowered.com/api/appdetails?appids={app_id}&cc=in&l=en"
+        resp = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        app_data = data.get(app_id, {})
+        if not app_data.get("success"):
+            logger.warning("Steam API success=false for app %s", app_id)
+            return {}
+        return app_data.get("data", {})
+
+    def _extract_price(self, details: dict) -> tuple[Optional[float], str]:
+        price_info = details.get("price_overview")
+        if not price_info:
+            logger.info("No price info for Steam app")
+            return (None, self.DEFAULT_CURRENCY)
+        price = price_info.get("final", 0) / 100.0
+        currency = price_info.get("currency", self.DEFAULT_CURRENCY)
+        return (price, currency)
+
     def get_game_details(self, url: str) -> GameDetails:
         app_id = extract_steam_app_id(url)
         if not app_id:
             return GameDetails()
         try:
-            api_url = f"https://store.steampowered.com/api/appdetails?appids={app_id}&cc=in&l=en"
-            resp = requests.get(api_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            data = resp.json()
-            app_data = data.get(app_id, {})
-            if not app_data.get("success"):
-                logger.warning("Steam API returned success=false for app %s", app_id)
+            details = self._fetch_details(app_id)
+            if not details:
                 return GameDetails(store_id=app_id)
-            details = app_data.get("data", {})
-            name = details.get("name", "Unknown Game")
-            cover = details.get("header_image", "")
-            price_info = details.get("price_overview", {})
-            if price_info:
-                current_price = price_info.get("final", 0) / 100.0
-                currency = price_info.get("currency", "USD")
-                if currency != "INR":
-                    current_price = usd_to_inr(current_price)
-                    currency = "INR"
-            else:
-                current_price = None
-                currency = "INR"
+            price, currency = self._extract_price(details)
             return GameDetails(
-                name=name,
-                current_price=current_price,
+                name=details.get("name", "Unknown Game"),
+                current_price=price,
                 currency=currency,
-                cover_image=cover,
+                cover_image=details.get("header_image", ""),
                 store_id=app_id,
             )
         except requests.RequestException as e:
-            logger.error("Steam API request failed for %s: %s", url, e)
+            logger.error("Steam API request failed for app %s: %s", app_id, e)
             return GameDetails(store_id=app_id)
 
     def get_current_price(self, url: str) -> Optional[float]:
-        return self.get_game_details(url).current_price
+        details = self.get_game_details(url)
+        return details.current_price
 
 
 class EpicFetcher(BaseFetcher):
@@ -90,14 +102,13 @@ class EpicFetcher(BaseFetcher):
         if not slug:
             return GameDetails()
         try:
-            api_url = "https://store-content.ak.epicgames.com/api/en-US/content/products/" + slug
+            api_url = f"https://store-content.ak.epicgames.com/api/en-US/content/products/{slug}"
             resp = requests.get(api_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
             resp.raise_for_status()
             data = resp.json()
             name = data.get("title", slug)
-            pages = data.get("pages", [])
             cover = ""
-            for page in pages:
+            for page in data.get("pages", []):
                 for item in page.get("data", {}).get("slides", []):
                     img = item.get("background", {})
                     if isinstance(img, dict) and img.get("url"):
@@ -214,10 +225,8 @@ def get_fetcher(store: str) -> BaseFetcher:
 
 
 def fetch_game_details(store: str, url: str) -> GameDetails:
-    fetcher = get_fetcher(store)
-    return fetcher.get_game_details(url)
+    return get_fetcher(store).get_game_details(url)
 
 
 def fetch_current_price(store: str, url: str) -> Optional[float]:
-    fetcher = get_fetcher(store)
-    return fetcher.get_current_price(url)
+    return get_fetcher(store).get_current_price(url)
