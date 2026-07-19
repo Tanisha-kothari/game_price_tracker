@@ -9,6 +9,21 @@
     "lowest_price": 3999.0,
     "last_checked": "2026-07-19",
     "currency": "INR",
-    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/a3cdc6f40d97df8ac993679c2dd1edeb5222421e/header.jpg?t=1778797474"
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/a3cdc6f40d97df8ac993679c2dd1edeb5222421e/header.jpg?t=1778797474",
+    "lowest_currency": "INR",
+    "current_currency": "INR"
+  },
+  {
+    "id": "steam_4704690",
+    "name": "MECCHA CHAMELEON",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/4704690/MECCHA_CHAMELEON/",
+    "current_price": 309.0,
+    "current_currency": "INR",
+    "lowest_price": 309.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-07-19",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4704690/163e2a742e5fb8e1f5d1e3a890da98f04ab809d4/header.jpg?t=1782561846"
   }
 ]
