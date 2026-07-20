@@ -27,5 +27,20 @@
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/489830/header.jpg?t=1753715778",
     "target_price": 500.0,
     "target_currency": "INR"
+  },
+  {
+    "id": "epic_cyberpunk-2077",
+    "name": "cyberpunk-2077",
+    "store": "epic",
+    "url": "https://store.epicgames.com/p/cyberpunk-2077",
+    "current_price": null,
+    "current_currency": "USD",
+    "lowest_price": null,
+    "lowest_currency": "USD",
+    "last_checked": "2026-07-20",
+    "currency": "USD",
+    "cover_image": "",
+    "target_price": 700.0,
+    "target_currency": "USD"
   }
 ]
