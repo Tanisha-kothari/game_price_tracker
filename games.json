@@ -28,5 +28,20 @@
     "cover_image": "",
     "target_price": 700.0,
     "target_currency": "USD"
+  },
+  {
+    "id": "epic_en-us",
+    "name": "Unknown Game",
+    "store": "epic",
+    "url": "https://store.epicgames.com/p/en-us/cyberpunk-2077",
+    "current_price": null,
+    "current_currency": "INR",
+    "lowest_price": null,
+    "lowest_currency": "INR",
+    "last_checked": "2026-07-20",
+    "currency": "INR",
+    "cover_image": "",
+    "target_price": 700.0,
+    "target_currency": "INR"
   }
 ]
