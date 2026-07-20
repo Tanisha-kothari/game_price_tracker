@@ -12,5 +12,20 @@
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/a3cdc6f40d97df8ac993679c2dd1edeb5222421e/header.jpg?t=1778797474",
     "lowest_currency": "INR",
     "current_currency": "INR"
+  },
+  {
+    "id": "steam_489830",
+    "name": "The Elder Scrolls V: Skyrim Special Edition",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/489830/The_Elder_Scrolls_V_Skyrim_Special_Edition/",
+    "current_price": 1799.0,
+    "current_currency": "INR",
+    "lowest_price": 1799.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-07-20",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/489830/header.jpg?t=1753715778",
+    "target_price": 500.0,
+    "target_currency": "INR"
   }
 ]
