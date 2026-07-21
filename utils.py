@@ -92,11 +92,29 @@ def extract_gog_game_id(url: str) -> Optional[str]:
 
 
 def extract_epic_slug(url: str) -> Optional[str]:
-    match = re.search(r"store\.epicgames\.com/(?:[a-z]{2}-[a-z]{2}/)?p/([a-z0-9_-]+)", url.lower())
-    if match:
-        return match.group(1)
-    match = re.search(r"epicgames\.com/(?:[a-z]{2}-[a-z]{2}/)?p/([a-z0-9_-]+)", url.lower())
-    return match.group(1) if match else None
+    if not url:
+        return None
+    stripped = url.strip()
+    # Bare slug with no domain (e.g. "grand-theft-auto-v") — accept directly.
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", stripped):
+        return stripped.lower()
+    # Strip query string / fragment, trailing slash.
+    cleaned = stripped.split("?")[0].split("#")[0].rstrip("/")
+    # Accept many locale/domain variants:
+    #   https://store.epicgames.com/en-US/p/<slug>
+    #   https://www.epicgames.com/p/<slug>
+    #   https://epicgames.com/<locale>/p/<slug>
+    #   https://store.epicgames.com/p/<parent>/<addon>  (last segment is the add-on)
+    match = re.search(
+        r"epicgames\.com/(?:[a-z]{2}-[a-z]{2}/)?p/(.+?)/?$",
+        cleaned,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    remainder = match.group(1)
+    # For add-on URLs, the relevant product slug is the final path segment.
+    return remainder.split("/")[-1].lower()
 
 
 def generate_game_id(store: str, store_id: str) -> str:

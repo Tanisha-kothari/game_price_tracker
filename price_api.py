@@ -8,13 +8,15 @@ import requests
 # ─────────────────────────────────────────────
 # price_api.py — Fetchers for Steam, Epic, GOG
 # Every price returned carries its own currency.
-# Steam: cc=in, never converted.
-# Epic / GOG: USD → INR converted at fetch time.
+# Steam: cc=in, never converted (native INR).
+# Epic: storefront GraphQL; native INR preferred (country=IN),
+#       falls back to USD -> INR conversion when unavailable.
+# GOG: USD -> INR converted at fetch time.
 # ─────────────────────────────────────────────
 
 from utils import (
     extract_steam_app_id, extract_gog_game_id, extract_epic_slug,
-    usd_to_inr,
+    usd_to_inr, convert_price,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,29 +99,124 @@ class SteamFetcher(BaseFetcher):
 
 
 class EpicFetcher(BaseFetcher):
+    # Stable, auth-free storefront GraphQL endpoint. Returns title, price
+    # (in minor units), currency and key images for a given search keyword.
+    GRAPHQL_URL = "https://store.epicgames.com/graphql"
+    SEARCH_QUERY = """
+    query($country: String!, $locale: String!, $slug: String!) {
+      Catalog {
+        searchStore(country: $country, locale: $locale, count: 10, keywords: $slug) {
+          elements {
+            title
+            productSlug
+            urlSlug
+            namespace
+            seller { name }
+            price(country: $country) {
+              totalPrice { currencyCode discountPrice originalPrice }
+            }
+            keyImages { type url }
+          }
+        }
+      }
+    }
+    """
+    # Preferred cover image types, most -> least square/portrait friendly.
+    COVER_PREFERENCE = ("Thumbnail", "OfferImageTall", "OfferImageWide", "DieselGameBox")
+    # Try native INR first (no exchange-rate dependency); fall back to USD.
+    COUNTRY_ATTEMPTS = (("IN", "en-US"), ("US", "en-US"))
+
+    def _search(self, slug: str, country: str, locale: str) -> Optional[dict]:
+        try:
+            resp = requests.post(
+                self.GRAPHQL_URL,
+                json={
+                    "query": self.SEARCH_QUERY,
+                    "variables": {"country": country, "locale": locale, "slug": slug},
+                },
+                headers=HEADERS,
+                timeout=REQUEST_TIMEOUT,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+        except requests.RequestException as e:
+            logger.error("Epic GraphQL request failed (country=%s, slug=%s): %s", country, slug, e)
+            return None
+        if "errors" in payload:
+            logger.error("Epic GraphQL returned errors (country=%s): %s", country, payload["errors"])
+            return None
+        try:
+            return payload["data"]["Catalog"]["searchStore"]
+        except (KeyError, TypeError) as e:
+            logger.error("Epic GraphQL unexpected response shape: %s", e)
+            return None
+
+    def _match_element(self, elements: list, slug: str):
+        if not elements:
+            return None, False
+        for el in elements:
+            for key in ("urlSlug", "productSlug"):
+                v = el.get(key)
+                if v and (v == slug or v.rstrip("/").lower().endswith("/" + slug)):
+                    return el, True
+        # No exact match — search returned the closest product, use it.
+        return elements[0], False
+
+    def _pick_cover(self, element: dict) -> str:
+        imgs = element.get("keyImages") or []
+        by_type = {i.get("type"): i.get("url") for i in imgs if i.get("url")}
+        for preferred in self.COVER_PREFERENCE:
+            if by_type.get(preferred):
+                return by_type[preferred]
+        for url in by_type.values():
+            return url
+        return ""
+
+    def _parse_price(self, element: dict):
+        price_info = element.get("price") or {}
+        total = price_info.get("totalPrice")
+        if not total:
+            return None, "INR"
+        currency = total.get("currencyCode", "USD")
+        cents = total.get("discountPrice")
+        if cents is None:
+            cents = total.get("originalPrice")
+        if cents is None:
+            return None, currency
+        return cents / 100.0, currency
+
     def get_game_details(self, url: str) -> GameDetails:
         slug = extract_epic_slug(url)
         if not slug:
+            logger.warning("Epic: could not extract slug from URL: %s", url)
             return GameDetails()
-        try:
-            api_url = f"https://store-content.ak.epicgames.com/api/en-US/content/products/{slug}"
-            resp = requests.get(api_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            data = resp.json()
-            name = data.get("title", slug)
-            cover = ""
-            for page in data.get("pages", []):
-                for item in page.get("data", {}).get("slides", []):
-                    img = item.get("background", {})
-                    if isinstance(img, dict) and img.get("url"):
-                        cover = img["url"]
-                        break
-            price_data = self._fetch_price(slug)
-            current_price = price_data.get("price")
-            currency = price_data.get("currency", "USD")
-            if current_price is not None and currency != "INR":
-                current_price = usd_to_inr(current_price)
-                currency = "INR"
+        logger.info("Epic: extracted slug=%s from %s", slug, url)
+
+        for country, locale in self.COUNTRY_ATTEMPTS:
+            search = self._search(slug, country, locale)
+            if not search:
+                continue
+            elements = search.get("elements") or []
+            logger.info("Epic: country=%s returned %d elements", country, len(elements))
+            element, exact = self._match_element(elements, slug)
+            if not element:
+                continue
+            logger.info("Epic: matched '%s' (exact=%s)", element.get("title"), exact)
+
+            name = element.get("title") or slug
+            current_price, currency = self._parse_price(element)
+
+            # Normalize to INR for app-wide consistency. Native INR (country=IN)
+            # needs no conversion; otherwise convert the fetched currency.
+            if currency != "INR" and current_price is not None:
+                converted = convert_price(current_price, currency, "INR")
+                if converted is not None:
+                    current_price, currency = converted, "INR"
+                else:
+                    logger.warning("Epic: INR conversion failed; keeping %s %s", current_price, currency)
+
+            cover = self._pick_cover(element)
+            logger.info("Epic: price=%s %s | cover=%s", current_price, currency, bool(cover))
             return GameDetails(
                 name=name,
                 current_price=current_price,
@@ -127,31 +224,9 @@ class EpicFetcher(BaseFetcher):
                 cover_image=cover,
                 store_id=slug,
             )
-        except requests.RequestException as e:
-            logger.error("Epic API request failed for %s: %s", url, e)
-            return GameDetails(store_id=slug)
 
-    def _fetch_price(self, slug: str) -> dict:
-        try:
-            api_url = f"https://store-content.ak.epicgames.com/api/en-US/content/products/{slug}"
-            resp = requests.get(api_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            data = resp.json()
-            for page in data.get("pages", []):
-                offer = page.get("data", {}).get("offer", {})
-                if offer:
-                    price_data = offer.get("price", {})
-                    if price_data:
-                        total = price_data.get("totalPrice", {})
-                        if total:
-                            return {
-                                "price": total.get("discountPrice", total.get("originalPrice", 0)) / 100.0,
-                                "currency": total.get("currencyCode", "USD"),
-                            }
-            return {"price": None, "currency": "USD"}
-        except (requests.RequestException, KeyError, TypeError) as e:
-            logger.error("Epic price fetch failed for %s: %s", slug, e)
-            return {"price": None, "currency": "USD"}
+        logger.error("Epic: no matching product found for slug=%s", slug)
+        return GameDetails(store_id=slug)
 
     def get_current_price(self, url: str) -> Optional[float]:
         return self.get_game_details(url).current_price
