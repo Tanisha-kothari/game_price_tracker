@@ -13,5 +13,18 @@
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/489830/header.jpg?t=1753715778",
     "target_price": 500.0,
     "target_currency": "INR"
+  },
+  {
+    "id": "epic_the-witcher-3-wild-hunt",
+    "name": "The Witcher 3: Wild Hunt – Complete Edition",
+    "store": "epic",
+    "url": "https://store.epicgames.com/p/the-witcher-3-wild-hunt?lang=en-US",
+    "current_price": 282.6,
+    "current_currency": "INR",
+    "lowest_price": 282.6,
+    "lowest_currency": "INR",
+    "last_checked": "2026-07-21",
+    "currency": "INR",
+    "cover_image": "https://cdn1.epicgames.com/offer/14ee004dadc142faaaece5a6270fb628/EGS_TheWitcher3WildHuntCompleteEdition_CDPROJEKTRED_S2_1200x1600-53a8fb2c0201cd8aea410f2a049aba3f"
   }
 ]
