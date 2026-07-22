@@ -1,5 +1,6 @@
 import logging
 import smtplib
+from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
@@ -58,7 +59,7 @@ def build_price_email(
     if is_new_low:
         new_low = (
             '<p style="color:#f59e0b; font-weight:bold; font-size:16px;">'
-            "\ud83c\udf1f New all-time low!</p>"
+            "\U0001F31F New all-time low!</p>"
         )
 
     cover_html = ""
@@ -136,7 +137,7 @@ def build_summary_email(changed: list[dict], unchanged_count: int) -> str:
 <tr><td align="center">
 <table width="540" cellpadding="0" cellspacing="0" style="background:linear-gradient(145deg,#1a2332,#0f172a); border-radius:18px; padding:28px; border:1px solid rgba(59,130,246,0.15); box-shadow:0 8px 32px rgba(0,0,0,0.4);">
 <tr><td style="text-align:center;">
-<div style="font-size:40px; margin-bottom:8px;">\ud83d\udcc8</div>
+<div style="font-size:40px; margin-bottom:8px;">\U0001F4C8</div>
 <h1 style="color:#f1f5f9; font-size:22px; margin:0 0 4px 0; font-weight:700;">Daily Price Summary</h1>
 <p style="color:#64748b; font-size:13px; margin:0 0 24px 0;">{today_str()}</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(15,23,42,0.6); border-radius:12px; overflow:hidden;">
@@ -157,6 +158,21 @@ def build_summary_email(changed: list[dict], unchanged_count: int) -> str:
     return html
 
 
+def _validate_unicode(label: str, value: str) -> bool:
+    """Verify that *value* contains no lone surrogate code points (U+D800–U+DFFF).
+    Returns True if valid; logs the precise field name on failure."""
+    for i, ch in enumerate(value):
+        if 0xD800 <= ord(ch) <= 0xDFFF:
+            context = repr(value[max(0, i - 8):i + 8])
+            logger.error(
+                "Unicode validation failed for '%s' at position %d: "
+                "lone surrogate U+%04X found near %s",
+                label, i, ord(ch), context,
+            )
+            return False
+    return True
+
+
 def send_email(
     smtp_server: str,
     smtp_port: int,
@@ -166,24 +182,71 @@ def send_email(
     subject: str,
     html_body: str,
 ) -> bool:
+    # ── Pre-send validation ──────────────────────────────────
+    html_size = len(html_body)
+    logger.info(
+        "Pre-send: subject=%s | html=%d bytes",
+        subject[:80].replace("\n", " "), html_size,
+    )
+
+    for label, field in [("subject", subject), ("html_body", html_body)]:
+        if not _validate_unicode(label, field):
+            return False
+    logger.info("Unicode validation: passed")
+
+    # ── MIME construction ────────────────────────────────────
     try:
         msg = MIMEMultipart("alternative")
         msg["From"] = email_address
         msg["To"] = to_address
-        msg["Subject"] = subject
-        msg.attach(MIMEText(html_body, "html"))
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
+        # Header() wraps non-ASCII (emoji, ₹, —) in MIME
+        # encoded-words (=?utf-8?B?...?=) that are ASCII-safe.
+        msg["Subject"] = Header(subject, "utf-8")
+        # Explicit charset="utf-8" selects base64/qp transfer
+        # encoding so the HTML payload is never us-ascii.
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+    except Exception as e:
+        logger.error("Email construction failed: %s", e)
+        return False
+    logger.info("MIME construction: succeeded")
+
+    # ── SMTP send ────────────────────────────────────────────
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
             server.starttls()
             server.login(email_address, email_password)
             server.send_message(msg)
-        logger.info("Email sent to %s: %s", to_address, subject)
-        return True
+    except smtplib.SMTPAuthenticationError:
+        logger.error(
+            "SMTP authentication failed: check EMAIL_ADDRESS and EMAIL_PASSWORD secrets"
+        )
+        return False
+    except smtplib.SMTPConnectError:
+        logger.error(
+            "SMTP connection failed: could not connect to %s:%s",
+            smtp_server,
+            smtp_port,
+        )
+        return False
+    except smtplib.SMTPRecipientsRefused:
+        logger.error(
+            "Message sending failed: all recipients refused (check EMAIL_TO)"
+        )
+        return False
     except smtplib.SMTPException as e:
-        logger.error("Failed to send email: %s", e)
+        logger.error("Message sending failed: %s", e)
+        return False
+    except TimeoutError:
+        logger.error(
+            "SMTP connection timed out: %s:%s", smtp_server, smtp_port
+        )
         return False
     except Exception as e:
         logger.error("Email error: %s", e)
         return False
+
+    logger.info("SMTP send: succeeded")
+    return True
 
 
 def send_price_alert(
@@ -206,7 +269,7 @@ def send_price_alert(
     smtp_port: int = 587,
 ) -> bool:
     price_display = format_price(current_price, currency)
-    subject = f"\ud83d\udcc8 Price Alert: {game_name} - {price_display}"
+    subject = f"\U0001F4C8 Price Alert: {game_name} - {price_display}"
     html = build_price_email(
         game_name, store, current_price, previous_price, price_diff,
         lowest_price, lowest_currency, target_price, target_currency,
@@ -227,7 +290,7 @@ def send_summary_email(
     smtp_server: str = "smtp.gmail.com",
     smtp_port: int = 587,
 ) -> bool:
-    subject = f"\ud83d\udcc8 Daily Price Summary - {today_str()}"
+    subject = f"\U0001F4C8 Daily Price Summary - {today_str()}"
     html = build_summary_email(changed, unchanged_count)
     return send_email(
         smtp_server, smtp_port, email_address, email_password,
@@ -246,7 +309,7 @@ def send_daily_report(
 ) -> bool:
     from report import build_daily_report
     date = today_str()
-    subject = f"\ud83c\udfae Daily Game Price Report \u2014 {date}"
+    subject = f"\U0001F3AE Daily Game Price Report \u2014 {date}"
     html = build_daily_report(games, history)
     return send_email(
         smtp_server, smtp_port, email_address, email_password,

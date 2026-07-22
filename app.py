@@ -652,7 +652,7 @@ def main():
         email_addr = os.environ.get("EMAIL_ADDRESS") or st.secrets.get("EMAIL_ADDRESS", "")
         email_pwd = os.environ.get("EMAIL_PASSWORD") or st.secrets.get("EMAIL_PASSWORD", "")
         email_to = os.environ.get("EMAIL_TO") or st.secrets.get("EMAIL_TO", email_addr)
-        report_time = os.environ.get("EMAIL_REPORT_TIME") or st.secrets.get("EMAIL_REPORT_TIME", "10:20")
+        report_time = os.environ.get("EMAIL_REPORT_TIME") or st.secrets.get("EMAIL_REPORT_TIME", "11:05")
         smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
         smtp_port = int(os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT", "587"))
         if email_addr and email_pwd:
@@ -680,7 +680,7 @@ def main():
 
     st.markdown(
         f'<div class="hero-section">'
-        f'<div class="hero-title">🎮 Game Price Tracker</div>'
+        f'<div class="hero-title"> Game Price Tracker</div>'
         f'<div class="hero-subtitle">Track prices across Steam, Epic Games and GOG.</div>'
         f'<div class="dashboard-grid">'
         f'<div class="dash-card"><div class="dash-label">Tracked Games</div>'
