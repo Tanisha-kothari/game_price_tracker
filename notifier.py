@@ -202,6 +202,8 @@ def send_price_alert(
     cover_image: str,
     currency: str = "INR",
     is_new_low: bool = False,
+    smtp_server: str = "smtp.gmail.com",
+    smtp_port: int = 587,
 ) -> bool:
     price_display = format_price(current_price, currency)
     subject = f"\ud83d\udcc8 Price Alert: {game_name} - {price_display}"
@@ -211,7 +213,7 @@ def send_price_alert(
         cover_image, currency, is_new_low,
     )
     return send_email(
-        "smtp.gmail.com", 587, email_address, email_password,
+        smtp_server, smtp_port, email_address, email_password,
         to_address, subject, html,
     )
 
@@ -222,10 +224,31 @@ def send_summary_email(
     to_address: str,
     changed: list[dict],
     unchanged_count: int,
+    smtp_server: str = "smtp.gmail.com",
+    smtp_port: int = 587,
 ) -> bool:
     subject = f"\ud83d\udcc8 Daily Price Summary - {today_str()}"
     html = build_summary_email(changed, unchanged_count)
     return send_email(
-        "smtp.gmail.com", 587, email_address, email_password,
+        smtp_server, smtp_port, email_address, email_password,
+        to_address, subject, html,
+    )
+
+
+def send_daily_report(
+    email_address: str,
+    email_password: str,
+    to_address: str,
+    games: list[dict],
+    history: dict,
+    smtp_server: str = "smtp.gmail.com",
+    smtp_port: int = 587,
+) -> bool:
+    from report import build_daily_report
+    date = today_str()
+    subject = f"\ud83c\udfae Daily Game Price Report \u2014 {date}"
+    html = build_daily_report(games, history)
+    return send_email(
+        smtp_server, smtp_port, email_address, email_password,
         to_address, subject, html,
     )

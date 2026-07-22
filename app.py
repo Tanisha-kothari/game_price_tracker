@@ -17,6 +17,7 @@ from database import (
 )
 from price_api import fetch_game_details
 from github_manager import GitHubManager
+from scheduler import start_daily_report_scheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("app")
@@ -440,7 +441,8 @@ def get_last_sync(games: list[dict]) -> str:
 
 def notification_status() -> tuple[str, str]:
     email = os.environ.get("EMAIL_ADDRESS") or st.secrets.get("EMAIL_ADDRESS", "")
-    if email:
+    password = os.environ.get("EMAIL_PASSWORD") or st.secrets.get("EMAIL_PASSWORD", "")
+    if email and password:
         return "Configured", "ok"
     return "Not configured", "warn"
 
@@ -644,6 +646,23 @@ def main():
     gh = init_github()
     if gh is None:
         return
+
+    if "scheduler_started" not in st.session_state:
+        st.session_state.scheduler_started = True
+        email_addr = os.environ.get("EMAIL_ADDRESS") or st.secrets.get("EMAIL_ADDRESS", "")
+        email_pwd = os.environ.get("EMAIL_PASSWORD") or st.secrets.get("EMAIL_PASSWORD", "")
+        email_to = os.environ.get("EMAIL_TO") or st.secrets.get("EMAIL_TO", email_addr)
+        report_time = os.environ.get("EMAIL_REPORT_TIME") or st.secrets.get("EMAIL_REPORT_TIME", "10:20")
+        smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
+        smtp_port = int(os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT", "587"))
+        if email_addr and email_pwd:
+            start_daily_report_scheduler(
+                gh, email_addr, email_pwd,
+                to_address=email_to, send_time=report_time,
+                smtp_server=smtp_server, smtp_port=smtp_port,
+            )
+        else:
+            logger.info("Email not configured; daily report scheduler disabled")
 
     if "games" not in st.session_state or "history" not in st.session_state:
         games, history, _ = load_data_from_github(gh)
