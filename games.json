@@ -26,5 +26,20 @@
     "last_checked": "2026-08-04",
     "currency": "INR",
     "cover_image": "https://cdn1.epicgames.com/offer/14ee004dadc142faaaece5a6270fb628/EGS_TheWitcher3WildHuntCompleteEdition_CDPROJEKTRED_S2_1200x1600-53a8fb2c0201cd8aea410f2a049aba3f"
+  },
+  {
+    "id": "steam_1091500",
+    "name": "Cyberpunk 2077",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/1091500/Cyberpunk_2077/",
+    "current_price": 899.0,
+    "current_currency": "INR",
+    "lowest_price": 899.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-08-04",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/e9047d8ec47ae3d94bb8b464fb0fc9e9972b4ac7/header.jpg?t=1784714077",
+    "target_price": 500.0,
+    "target_currency": "INR"
   }
 ]
