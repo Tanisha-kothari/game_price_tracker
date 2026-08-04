@@ -71,5 +71,20 @@
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/221100/header.jpg?t=1769695513",
     "target_price": 500.0,
     "target_currency": "INR"
+  },
+  {
+    "id": "steam_251570",
+    "name": "7 Days to Die",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/251570/7_Days_to_Die/",
+    "current_price": 1800.0,
+    "current_currency": "INR",
+    "lowest_price": 1800.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-08-04",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/251570/header.jpg?t=1785351975",
+    "target_price": 500.0,
+    "target_currency": "INR"
   }
 ]
