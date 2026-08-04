@@ -86,5 +86,20 @@
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/251570/header.jpg?t=1785351975",
     "target_price": 500.0,
     "target_currency": "INR"
+  },
+  {
+    "id": "steam_275850",
+    "name": "No Man's Sky",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/275850/No_Mans_Sky/",
+    "current_price": 2400.0,
+    "current_currency": "INR",
+    "lowest_price": 2400.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-08-04",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/275850/5f39cba0164881a53f6aee01f72180f7c619c011/header.jpg?t=1779908213",
+    "target_price": 500.0,
+    "target_currency": "INR"
   }
 ]
