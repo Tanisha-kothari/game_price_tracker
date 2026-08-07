@@ -18,6 +18,7 @@ from database import (
 from price_api import fetch_game_details
 from github_manager import GitHubManager
 from scheduler import start_daily_report_scheduler
+from budget_planner import BudgetPlanner, BudgetOptions, BudgetPlannerError, PlanResult, combo_key
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("app")
@@ -374,6 +375,97 @@ CUSTOM_CSS = """
         .add-game-card { padding: 18px; }
         .hero-section { padding: 24px 16px; }
     }
+
+    /* ── View switcher ─────────────────────────────────── */
+    div[data-testid="stRadio"] > div {
+        gap: 6px;
+    }
+    div[data-testid="stRadio"] label {
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(99, 102, 241, 0.18);
+        border-radius: 12px;
+        padding: 8px 16px;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    div[data-testid="stRadio"] label:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        color: #e2e8f0;
+    }
+    div[data-testid="stRadio"] label:has(input:checked) {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(37, 99, 235, 0.18));
+        border-color: rgba(139, 92, 246, 0.55);
+        color: #f1f5f9;
+    }
+
+    /* ── Budget planner UI ─────────────────────────────── */
+    .planner-card {
+        background: linear-gradient(145deg, rgba(15,23,42,0.88), rgba(2,6,23,0.95));
+        border: 1px solid rgba(99, 102, 241, 0.12);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 20px;
+    }
+    .planner-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 18px;
+    }
+    .planner-pill {
+        flex: 1 1 auto;
+        min-width: 140px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 14px;
+        padding: 14px 18px;
+        text-align: center;
+    }
+    .planner-pill .label {
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .planner-pill .value {
+        color: #f1f5f9;
+        font-size: 22px;
+        font-weight: 800;
+        margin-top: 2px;
+    }
+    .planner-pill .value.green  { color: #22c55e; }
+    .planner-pill .value.amber  { color: #f59e0b; }
+    .planner-pill .value.red    { color: #ef4444; }
+    .planner-pill .value.violet { color: #8b5cf6; }
+
+    .planner-game-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 4px;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.25);
+    }
+    .planner-game-row:last-child { border-bottom: none; }
+    .planner-game-index {
+        width: 28px; height: 28px;
+        flex: 0 0 28px;
+        border-radius: 50%;
+        background: rgba(124, 58, 237, 0.2);
+        color: #c4b5fd;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; font-weight: 700;
+    }
+    .planner-game-name { color: #f1f5f9; font-weight: 600; font-size: 15px; flex: 1; }
+    .planner-game-price { color: #22c55e; font-weight: 700; font-size: 15px; white-space: nowrap; }
+    .planner-notice {
+        color: #94a3b8; font-size: 13px; margin-top: 12px; padding: 12px;
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: 12px;
+    }
 </style>
 """
 
@@ -640,6 +732,159 @@ def handle_refresh_all(games: list[dict], gh: GitHubManager):
         st.rerun()
 
 
+PLANNER_VIEW = "💰 Smart Budget Planner"
+TRACKER_VIEW = "🎮 Tracked Games"
+
+
+def render_budget_planner(games: list[dict]):
+    """Renders the Smart Budget Planner section (separate view from the tracker)."""
+    priceable = [g for g in games if g.get("current_price") is not None]
+    name_to_id = {g["name"]: g["id"] for g in priceable}
+    id_to_game = {g["id"]: g for g in priceable}
+
+    st.markdown(
+        '<div class="section-title">💰 Smart Budget Planner</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not priceable:
+        st.markdown(
+            '<div class="empty-state">'
+            '<div class="empty-icon">💰</div>'
+            '<div class="empty-title">No priced games to plan with</div>'
+            '<div class="empty-sub">Track some games first — the planner draws from your '
+            "tracked games' current prices.</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    # ── Inputs ──────────────────────────────────────────────
+    bcol, ccol = st.columns(2)
+    with bcol:
+        budget = st.number_input("Budget (₹)", min_value=1, step=100, value=3000)
+    with ccol:
+        count = st.number_input(
+            "Games to buy", min_value=1,
+            max_value=len(priceable), step=1,
+            value=min(3, len(priceable)),
+        )
+
+    mcol, fcol = st.columns([2, 1.4])
+    with mcol:
+        must_names = st.multiselect("Must include (optional)", list(name_to_id.keys()))
+    with fcol:
+        flex = st.checkbox("Flexible budget", help="Allow the total to exceed the budget by a small percentage.")
+        flex_pct = st.slider("Flexibility %", 0, 100, 10, disabled=not flex) if flex else 0
+
+    def _current_options() -> BudgetOptions:
+        return BudgetOptions(
+            budget=float(budget),
+            count=int(count),
+            must_include_ids=tuple(name_to_id[n] for n in must_names),
+            flex_pct=float(flex_pct if flex else 0),
+        )
+
+    # Fingerprint of the inputs, to tell when settings changed.
+    fingerprint = (float(budget), int(count), tuple(sorted(name_to_id[n] for n in must_names)), float(flex_pct if flex else 0))
+
+    ss = st.session_state
+    # Reset cached plan whenever the inputs change.
+    if ss.get("planner.fp") != fingerprint:
+        ss["planner.fp"] = fingerprint
+        ss["planner.excluded"] = set()
+        ss["planner.result"] = None
+        ss["planner.error"] = None
+
+    gcol, rcol, _ = st.columns([1, 1, 3])
+    with gcol:
+        generate_clicked = st.button("⚡ Generate", type="primary", use_container_width=True)
+    with rcol:
+        refresh_clicked = st.button("🔄 Refresh", use_container_width=True)
+
+    # ── Action handling ─────────────────────────────────────
+    plan: Optional[PlanResult] = None
+    if generate_clicked:
+        ss["planner.excluded"] = set()
+        try:
+            planner = BudgetPlanner(priceable, _current_options())
+            plan = planner.generate(exclude=set())
+            ss["planner.excluded"].add(combo_key(tuple(plan.games)))
+            ss["planner.result"] = plan
+            ss["planner.error"] = None
+        except BudgetPlannerError as e:
+            ss["planner.result"] = None
+            ss["planner.error"] = str(e)
+
+    elif refresh_clicked and ss.get("planner.result") is not None:
+        try:
+            planner = BudgetPlanner(priceable, _current_options())
+            plan = planner.generate(exclude=ss["planner.excluded"])
+            ss["planner.excluded"].add(combo_key(tuple(plan.games)))
+            ss["planner.result"] = plan
+            ss["planner.error"] = None
+        except BudgetPlannerError as e:
+            ss["planner.error"] = str(e)
+
+    # Show errors, then the current (or newly chosen) plan.
+    if ss.get("planner.error"):
+        st.error(ss["planner.error"])
+
+    result = plan if plan is not None else ss.get("planner.result")
+    if result is None:
+        st.markdown(
+            '<div class="empty-state">'
+            '<div class="empty-icon">🗒️</div>'
+            '<div class="empty-title">Set your budget and hit Generate</div>'
+            '<div class="empty-sub">The planner finds combinations of tracked games '
+            "that fit your budget.</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    # ── Render the plan ───────────────────────────────────────
+    rows = ""
+    for i, g in enumerate(result.games, start=1):
+        rows += (
+            f'<div class="planner-game-row">'
+            f'<div class="planner-game-index">{i}</div>'
+            f'<div class="planner-game-name">{g["name"]} '
+            f'{render_store_badge(g.get("store", ""))}</div>'
+            f'<div class="planner-game-price">{format_price(g.get("current_price"), get_price_currency(g, "current_price"))}</div>'
+            f"</div>"
+        )
+
+    over = result.is_over_budget
+    remaining_display = format_price(result.remaining, "INR")
+    if over:
+        total_value = f'<div class="value amber">over by {format_price(result.over_amount, "INR")}</div>'
+    else:
+        total_value = f'<div class="value green">{remaining_display}</div>'
+
+    only_one = result.combos_count <= 1
+    notice = f'<p style="color:#64748b;font-size:12px;margin-top:10px;">{result.combos_count} valid combination(s) found. ' \
+             f'{"Only one combination fits these settings, so Refresh will show the same plan." if only_one else "Use Refresh for a different combination."}</p>'
+
+    st.markdown(
+        f'<div class="planner-card">'
+        f'<div class="planner-summary">'
+        f'<div class="planner-pill"><div class="label">Budget</div>'
+        f'<div class="value">{format_price(result.budget, "INR")}</div></div>'
+        f'<div class="planner-pill"><div class="label">Allowed</div>'
+        f'<div class="value violet">{format_price(result.allowed, "INR")}</div></div>'
+        f'<div class="planner-pill"><div class="label">Total Cost</div>'
+        f'<div class="value">{format_price(result.total, "INR")}</div></div>'
+        f'<div class="planner-pill"><div class="label">{"Over Budget" if over else "Remaining"}</div>'
+        f'{total_value}</div>'
+        f"</div>"
+        f"{rows}"
+        f"{notice}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def main():
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
@@ -674,6 +919,16 @@ def main():
 
     games = st.session_state.games
     history = st.session_state.history
+
+    # ── View switcher ────────────────────────────────────────
+    view = st.radio(
+        "", [TRACKER_VIEW, PLANNER_VIEW],
+        horizontal=True, label_visibility="collapsed",
+        key="app_view",
+    )
+    if view == PLANNER_VIEW:
+        render_budget_planner(games)
+        return
 
     last_sync = get_last_sync(games)
     notify_label, notify_class = notification_status()

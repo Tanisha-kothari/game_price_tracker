@@ -12,6 +12,19 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# ── Constants used across the project ──────────────────────────────────
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
+}
+REQUEST_TIMEOUT = 15
+
+
+
+
 STORE_DOMAINS = {
     "steam": ["store.steampowered.com", "steamcommunity.com"],
     "epic": ["store.epicgames.com", "epicgames.com"],
