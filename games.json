@@ -276,5 +276,25 @@
     "last_checked": "2026-08-10",
     "currency": "INR",
     "cover_image": ""
+  },
+  {
+    "id": "steam_1766060",
+    "game_id": "humanitz",
+    "name": "HumanitZ",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/1766060",
+    "current_price": 880.0,
+    "current_currency": "INR",
+    "original_price": 880.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "lowest_price": 880.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-08-10",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1766060/f6d26a2b241d9cb955c735738d45e5a6d4d78c25/header.jpg?t=1770400758"
   }
 ]
