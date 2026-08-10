@@ -132,26 +132,6 @@
     "game_id": "no-mans-sky"
   },
   {
-    "id": "steam_2379910",
-    "name": "Dystopika",
-    "store": "steam",
-    "url": "https://store.steampowered.com/app/2379910/Dystopika/",
-    "current_price": 172.0,
-    "current_currency": "INR",
-    "lowest_price": 172.0,
-    "lowest_currency": "INR",
-    "last_checked": "2026-08-10",
-    "currency": "INR",
-    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2379910/3ace3076a7af9add02ad4be8362a71e14041195f/header.jpg?t=1785392068",
-    "original_price": 345.0,
-    "discount_percent": 50,
-    "is_on_sale": true,
-    "sale_started": "2026-08-10",
-    "sale_last_seen": "2026-08-10",
-    "sale_end": null,
-    "game_id": "dystopika"
-  },
-  {
     "id": "steam_1046030",
     "name": "ISLANDERS",
     "store": "steam",
