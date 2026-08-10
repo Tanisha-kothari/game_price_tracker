@@ -12,7 +12,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/489830/header.jpg?t=1753715778",
     "target_price": 500.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 449.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "the-elder-scrolls-v-skyrim"
   },
   {
     "id": "steam_1091500",
@@ -27,7 +34,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/e9047d8ec47ae3d94bb8b464fb0fc9e9972b4ac7/header.jpg?t=1784714077",
     "target_price": 500.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 899.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "cyberpunk-2077"
   },
   {
     "id": "epic_cyberpunk-2077",
@@ -42,7 +56,14 @@
     "currency": "INR",
     "cover_image": "https://cdn1.epicgames.com/offer/77f2b98e2cef40c8a7437518bf420e47/EGS_Cyberpunk2077_CDPROJEKTRED_S2_03_1200x1600-b1847981214ac013383111fc457eb9c5",
     "target_price": 500.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 3205.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "cyberpunk-2077"
   },
   {
     "id": "steam_221100",
@@ -57,7 +78,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/221100/header.jpg?t=1769695513",
     "target_price": 500.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 3499.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "dayz"
   },
   {
     "id": "steam_251570",
@@ -72,7 +100,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/251570/header.jpg?t=1785351975",
     "target_price": 500.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 1800.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "7-days-to-die"
   },
   {
     "id": "steam_275850",
@@ -87,7 +122,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/275850/5f39cba0164881a53f6aee01f72180f7c619c011/header.jpg?t=1779908213",
     "target_price": 500.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 2400.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "no-mans-sky"
   },
   {
     "id": "steam_2198150",
@@ -102,7 +144,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2198150/header.jpg?t=1782371576",
     "target_price": 200.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 690.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "tiny-glade"
   },
   {
     "id": "steam_3115220",
@@ -117,7 +166,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3115220/header.jpg?t=1780911298",
     "target_price": 200.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 799.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "town-to-city"
   },
   {
     "id": "steam_329910",
@@ -132,7 +188,14 @@
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/329910/header.jpg?t=1521537755",
     "target_price": 200.0,
-    "target_currency": "INR"
+    "target_currency": "INR",
+    "original_price": 565.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "life-is-strange---episode-3"
   },
   {
     "id": "steam_2533960",
@@ -145,7 +208,14 @@
     "lowest_currency": "INR",
     "last_checked": "2026-08-10",
     "currency": "INR",
-    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2533960/header.jpg?t=1785521858"
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2533960/header.jpg?t=1785521858",
+    "original_price": 125.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "summerhouse"
   },
   {
     "id": "steam_2379910",
@@ -158,7 +228,14 @@
     "lowest_currency": "INR",
     "last_checked": "2026-08-10",
     "currency": "INR",
-    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2379910/3ace3076a7af9add02ad4be8362a71e14041195f/header.jpg?t=1785392068"
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2379910/3ace3076a7af9add02ad4be8362a71e14041195f/header.jpg?t=1785392068",
+    "original_price": 172.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "dystopika"
   },
   {
     "id": "steam_1046030",
@@ -171,6 +248,13 @@
     "lowest_currency": "INR",
     "last_checked": "2026-08-10",
     "currency": "INR",
-    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1046030/1bc0f29a0f3e4cdfd7a0d209ca0264228e39ee98/header.jpg?t=1760689653"
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1046030/1bc0f29a0f3e4cdfd7a0d209ca0264228e39ee98/header.jpg?t=1760689653",
+    "original_price": 75.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "game_id": "islanders"
   }
 ]
