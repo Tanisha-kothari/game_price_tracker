@@ -256,5 +256,25 @@
     "sale_last_seen": null,
     "sale_end": null,
     "game_id": "islanders"
+  },
+  {
+    "id": "epic_1bee25b94e4745be9c6beb5252fc5fa6",
+    "game_id": "humanitz",
+    "name": "HumanitZ",
+    "store": "epic",
+    "url": "https://store.epicgames.com/p/1bee25b94e4745be9c6beb5252fc5fa6",
+    "current_price": null,
+    "current_currency": "INR",
+    "original_price": null,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "lowest_price": null,
+    "lowest_currency": "INR",
+    "last_checked": "2026-08-10",
+    "currency": "INR",
+    "cover_image": ""
   }
 ]
