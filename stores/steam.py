@@ -26,8 +26,13 @@ class SteamStore(StoreInterface):
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         """Search Steam storefront by game name."""
         results: list[SearchResult] = []
+        clean_query = query.strip()
+        if not clean_query:
+            return results
+
+        logger.info("Steam search initiated for query: '%s'", clean_query)
         try:
-            params = {"term": query.strip(), "l": "en", "cc": "in"}
+            params = {"term": clean_query, "l": "en", "cc": "in"}
             resp = requests.get(
                 STEAM_STORE_SEARCH_URL,
                 params=params,
@@ -50,6 +55,10 @@ class SteamStore(StoreInterface):
                     original_price = None
                     discount = 0
 
+                cover = item.get("tiny_image", "") or item.get("header_image", "")
+                if app_id and not cover:
+                    cover = f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{app_id}/header.jpg"
+
                 edition = self._detect_edition(name)
 
                 results.append(SearchResult(
@@ -57,32 +66,39 @@ class SteamStore(StoreInterface):
                     store_id=app_id,
                     name=name,
                     current_price=current_price,
-                    original_price=original_price,
+                    original_price=original_price or current_price,
                     currency="INR",
                     discount_percent=discount,
-                    cover_image=item.get("tiny_image", "") or item.get("header_image", ""),
+                    cover_image=cover,
                     url=self.build_url(app_id),
-                    is_free=(current_price == 0),
+                    is_free=(current_price == 0) if current_price is not None else False,
                     edition=edition,
                 ))
-            logger.info("Steam search for '%s' found %d results", query, len(results))
+            logger.info("Steam search for '%s' returned %d results", clean_query, len(results))
         except requests.RequestException as e:
-            logger.error("Steam search failed for '%s': %s", query, e)
-
+            logger.error("Steam search network error for '%s': %s", clean_query, e)
+        except Exception as e:
+            logger.error("Steam search parse error for '%s': %s", clean_query, e)
+        return results
 
     def get_pricing(self, store_id: str) -> Optional[PricingInfo]:
         """Fetch detailed pricing for a Steam app by app ID."""
+        clean_id = store_id.strip()
+        if not clean_id:
+            return None
+
+        logger.info("Steam pricing requested for app: '%s'", clean_id)
         try:
             resp = requests.get(
-                f"{STEAM_APP_DETAILS_URL}?appids={store_id}&cc=in&l=en",
+                f"{STEAM_APP_DETAILS_URL}?appids={clean_id}&cc=in&l=en",
                 headers=HEADERS,
                 timeout=REQUEST_TIMEOUT,
             )
             resp.raise_for_status()
             data = resp.json()
-            app_data = data.get(store_id, {})
+            app_data = data.get(clean_id, {})
             if not app_data.get("success"):
-                logger.warning("Steam API success=false for app %s", store_id)
+                logger.warning("Steam API success=false for app %s", clean_id)
                 return None
             details = app_data.get("data", {})
             name = details.get("name", "Unknown Game")
@@ -92,24 +108,24 @@ class SteamStore(StoreInterface):
             currency = price_info.get("currency", "INR") if price_info else "INR"
             discount = price_info.get("discount_percent", 0) if price_info else 0
             cover = details.get("header_image", "")
-            sale_name = self._detect_sale_from_page(store_id, discount)
+            sale_name = self._detect_sale_from_page(clean_id, discount)
             return PricingInfo(
                 store=self.store_name,
-                store_id=store_id,
+                store_id=clean_id,
                 name=name,
                 current_price=current_price,
                 original_price=original_price or current_price,
                 currency=currency,
                 discount_percent=discount,
                 cover_image=cover,
-                url=self.build_url(store_id),
-                is_free=(current_price == 0) if current_price else False,
+                url=self.build_url(clean_id),
+                is_free=(current_price == 0) if current_price is not None else False,
                 sale_name=sale_name,
                 platform="steam",
                 drm="Steam",
             )
         except requests.RequestException as e:
-            logger.error("Steam pricing fetch failed for app %s: %s", store_id, e)
+            logger.error("Steam pricing fetch failed for app %s: %s", clean_id, e)
             return None
 
     def build_url(self, store_id: str) -> str:
@@ -163,4 +179,3 @@ class SteamStore(StoreInterface):
             return None
         except Exception:
             return None
-

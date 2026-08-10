@@ -134,6 +134,80 @@ def generate_game_id(store: str, store_id: str) -> str:
     return f"{store}_{store_id}"
 
 
+DISTINCT_PRODUCT_PATTERNS = [
+    r"\bDLC\b",
+    r"\bExpansion\b",
+    r"\bSeason Pass\b",
+    r"\bExpansion Pass\b",
+    r"\bSoundtrack\b",
+    r"\bOST\b",
+    r"\bDemo\b",
+    r"\bPrologue\b",
+    r"\bPlaytest\b",
+    r"\bArtbook\b",
+    r"\bVR\b",
+    r"\bREDkit\b",
+    r"\bREDmod\b",
+    r"\bCreation Credits\b",
+    r"\bCreation Kit\b",
+    r"\bScript Extender\b",
+    r"\bSKSE\b",
+    r"\bDark Arts Pack\b",
+    r"\bPhantom Liberty\b",
+    r"\bBlood and Wine\b",
+    r"\bHearts of Stone\b",
+    r"\bFrostline\b",
+    r"\bBadlands\b",
+    r"\bTools?\b",
+    r"\bServer\b",
+]
+
+_EDITION_STRIP_PATTERNS = [
+    r"[-–—:\s]+(?:Game of the Year|GOTY|Complete|Definitive|Digital Deluxe|Deluxe|Premium|Ultimate|Gold|Enhanced|Remastered|Special|Anniversary|Director'?s Cut|Standard)(?:\s+Edition|\s+Cut)?\s*$",
+    r"[-–—:\s]+Edition\s*$",
+]
+
+
+def is_distinct_addon(name: str) -> bool:
+    for pat in DISTINCT_PRODUCT_PATTERNS:
+        if re.search(pat, name, re.IGNORECASE):
+            return True
+    return False
+
+
+def strip_edition_suffix(name: str) -> str:
+    """Conservatively remove packaging edition suffixes while preserving DLCs/addons."""
+    if not name:
+        return ""
+    if is_distinct_addon(name):
+        return name.strip()
+    result = name.strip()
+    for pattern in _EDITION_STRIP_PATTERNS:
+        prev = None
+        while prev != result:
+            prev = result
+            candidate = re.sub(pattern, "", result, flags=re.IGNORECASE).strip()
+            if len(candidate) >= 3:
+                result = candidate
+    return result
+
+
+def slugify(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[\s_]+", "-", text)
+    return text.strip("-")
+
+
+def canonical_game_id(name: str) -> str:
+    """Stable canonical identity slug for conservative cross-store grouping."""
+    base = strip_edition_suffix(name)
+    slug = slugify(base)
+    canonical = slug or slugify(name) or "unknown-game"
+    logger.debug("Generated canonical_id '%s' for title '%s'", canonical, name)
+    return canonical
+
+
 def today_str() -> str:
     return date.today().isoformat()
 

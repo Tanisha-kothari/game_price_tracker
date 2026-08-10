@@ -35,6 +35,12 @@ HEADERS = {
 class GameDetails:
     name: str = "Unknown Game"
     current_price: Optional[float] = None
+    original_price: Optional[float] = None
+    discount_percent: Optional[int] = None
+    is_on_sale: bool = False
+    sale_started: Optional[str] = None
+    sale_last_seen: Optional[str] = None
+    sale_end: Optional[str] = None
     currency: str = "INR"
     cover_image: str = ""
     store_id: str = ""
@@ -64,14 +70,32 @@ class SteamFetcher(BaseFetcher):
             return {}
         return app_data.get("data", {})
 
-    def _extract_price(self, details: dict) -> tuple[Optional[float], str]:
+    def _extract_price(self, details: dict) -> dict:
+        """Pull current/original/discount from Steam's price_overview.
+
+        Steam already reports discount_percent — we never compute it ourselves.
+        """
         price_info = details.get("price_overview")
         if not price_info:
             logger.info("No price info for Steam app")
-            return (None, self.DEFAULT_CURRENCY)
-        price = price_info.get("final", 0) / 100.0
-        currency = price_info.get("currency", self.DEFAULT_CURRENCY)
-        return (price, currency)
+            return {
+                "current": None, "original": None,
+                "discount_percent": 0, "is_on_sale": False,
+            }
+
+        final_cents = price_info.get("final")
+        initial_cents = price_info.get("initial", final_cents)
+        discount_percent = price_info.get("discount_percent", 0) or 0
+
+        current = final_cents / 100.0 if final_cents is not None else None
+        original = initial_cents / 100.0 if initial_cents is not None else None
+
+        return {
+            "current": current,
+            "original": original,
+            "discount_percent": int(discount_percent),
+            "is_on_sale": discount_percent > 0,
+        }
 
     def get_game_details(self, url: str) -> GameDetails:
         app_id = extract_steam_app_id(url)
@@ -81,10 +105,15 @@ class SteamFetcher(BaseFetcher):
             details = self._fetch_details(app_id)
             if not details:
                 return GameDetails(store_id=app_id)
-            price, currency = self._extract_price(details)
+            price = self._extract_price(details)
+            currency = (details.get("price_overview") or {}).get("currency", self.DEFAULT_CURRENCY)
             return GameDetails(
                 name=details.get("name", "Unknown Game"),
-                current_price=price,
+                current_price=price["current"],
+                original_price=price["original"],
+                discount_percent=price["discount_percent"],
+                is_on_sale=price["is_on_sale"],
+                sale_end=None,
                 currency=currency,
                 cover_image=details.get("header_image", ""),
                 store_id=app_id,
@@ -172,18 +201,41 @@ class EpicFetcher(BaseFetcher):
             return url
         return ""
 
-    def _parse_price(self, element: dict):
+    def _parse_price(self, element: dict) -> dict:
+        """Return current/original/discount for an Epic element.
+
+        Epic reports discountPrice + originalPrice (minor units). If Epic does
+        not provide a percentage we compute it ourselves.
+        """
         price_info = element.get("price") or {}
         total = price_info.get("totalPrice")
         if not total:
-            return None, "INR"
+            return {
+                "current": None, "original": None,
+                "discount_percent": 0, "is_on_sale": False,
+            }
         currency = total.get("currencyCode", "USD")
-        cents = total.get("discountPrice")
-        if cents is None:
-            cents = total.get("originalPrice")
-        if cents is None:
-            return None, currency
-        return cents / 100.0, currency
+        original_cents = total.get("originalPrice")
+        current_cents = total.get("discountPrice", original_cents)
+
+        current = current_cents / 100.0 if current_cents is not None else None
+        original = original_cents / 100.0 if original_cents is not None else None
+
+        discount_percent = price_info.get("discountPercentage")
+        is_on_sale = (
+            original is not None
+            and current is not None
+            and original > current
+        )
+        if discount_percent is None and is_on_sale and original:
+            discount_percent = round((original - current) / original * 100)
+
+        return {
+            "current": current,
+            "original": original,
+            "discount_percent": int(discount_percent or 0),
+            "is_on_sale": is_on_sale,
+        }
 
     def get_game_details(self, url: str) -> GameDetails:
         slug = extract_epic_slug(url)
@@ -204,22 +256,33 @@ class EpicFetcher(BaseFetcher):
             logger.info("Epic: matched '%s' (exact=%s)", element.get("title"), exact)
 
             name = element.get("title") or slug
-            current_price, currency = self._parse_price(element)
+            price = self._parse_price(element)
+            currency = (element.get("price") or {}).get("totalPrice", {}).get("currencyCode", "INR")
 
-            # Normalize to INR for app-wide consistency. Native INR (country=IN)
-            # needs no conversion; otherwise convert the fetched currency.
-            if currency != "INR" and current_price is not None:
-                converted = convert_price(current_price, currency, "INR")
-                if converted is not None:
-                    current_price, currency = converted, "INR"
+            # Normalize both current and original to INR for app-wide consistency.
+            if currency != "INR" and price["current"] is not None:
+                converted_current = convert_price(price["current"], currency, "INR")
+                converted_original = None
+                if price["original"] is not None:
+                    converted_original = convert_price(price["original"], currency, "INR")
+                if converted_current is not None:
+                    price["current"] = converted_current
+                    price["original"] = converted_original
+                    currency = "INR"
                 else:
-                    logger.warning("Epic: INR conversion failed; keeping %s %s", current_price, currency)
+                    logger.warning("Epic: INR conversion failed; keeping %s %s", price["current"], currency)
 
             cover = self._pick_cover(element)
-            logger.info("Epic: price=%s %s | cover=%s", current_price, currency, bool(cover))
+            logger.info("Epic: price=%s %s | cover=%s", price["current"], currency, bool(cover))
             return GameDetails(
                 name=name,
-                current_price=current_price,
+                current_price=price["current"],
+                original_price=price["original"],
+                discount_percent=price["discount_percent"],
+                is_on_sale=price["is_on_sale"],
+                sale_started=None,
+                sale_last_seen=None,
+                sale_end=None,
                 currency=currency,
                 cover_image=cover,
                 store_id=slug,
@@ -249,15 +312,26 @@ class GOGFetcher(BaseFetcher):
                 cover = images["logo"]
                 if cover.startswith("//"):
                     cover = "https:" + cover
-            price_data = self._fetch_price(game_id)
-            current_price = price_data.get("price")
-            currency = price_data.get("currency", "USD")
-            if current_price is not None and currency != "INR":
-                current_price = usd_to_inr(current_price)
+            price = self._fetch_price(game_id)
+            currency = price.get("currency", "USD")
+            current = price.get("current")
+            original = price.get("original")
+            discount_percent = price.get("discount_percent", 0)
+            is_on_sale = price.get("is_on_sale", False)
+            if current is not None and currency != "INR":
+                current = usd_to_inr(current)
+                if original is not None:
+                    original = usd_to_inr(original)
                 currency = "INR"
             return GameDetails(
                 name=name,
-                current_price=current_price,
+                current_price=current,
+                original_price=original,
+                discount_percent=discount_percent,
+                is_on_sale=is_on_sale,
+                sale_started=None,
+                sale_last_seen=None,
+                sale_end=None,
                 currency=currency,
                 cover_image=cover,
                 store_id=str(game_id),
@@ -267,19 +341,35 @@ class GOGFetcher(BaseFetcher):
             return GameDetails(store_id=str(game_id))
 
     def _fetch_price(self, product_id: str) -> dict:
+        """Return base (original) + final (current) price from GOG.
+
+        GOG prices response has currency keys (e.g. USD) each carrying
+        basePrice/finalPrice; we compute the discount percent if needed.
+        """
         try:
             api_url = f"https://api.gog.com/products/{product_id}/prices"
             resp = requests.get(api_url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
             resp.raise_for_status()
             data = resp.json()
             usd = data.get("USD") or {}
-            base_price = usd.get("basePrice", usd.get("finalPrice"))
-            if base_price is not None:
-                return {"price": float(base_price), "currency": "USD"}
-            return {"price": None, "currency": "USD"}
+            base_price = usd.get("basePrice")
+            final_price = usd.get("finalPrice", base_price)
+            original = float(base_price) if base_price is not None else None
+            current = float(final_price) if final_price is not None else None
+            is_on_sale = original is not None and current is not None and original > current
+            discount_percent = usd.get("discountPercent")
+            if discount_percent is None and is_on_sale and original:
+                discount_percent = round((original - current) / original * 100)
+            return {
+                "current": current,
+                "original": original,
+                "discount_percent": int(discount_percent or 0),
+                "is_on_sale": is_on_sale,
+                "currency": "USD",
+            }
         except (requests.RequestException, KeyError, TypeError) as e:
             logger.error("GOG price fetch failed for product %s: %s", product_id, e)
-            return {"price": None, "currency": "USD"}
+            return {"current": None, "original": None, "discount_percent": 0, "is_on_sale": False, "currency": "USD"}
 
     def get_current_price(self, url: str) -> Optional[float]:
         return self.get_game_details(url).current_price

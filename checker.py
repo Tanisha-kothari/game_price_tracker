@@ -37,12 +37,12 @@ def main():
 
     from github_manager import GitHubManager
     from database import (
-        load_games, load_history, update_game_price, update_price_history,
+        load_games, load_history, update_price_history,
         detect_price_change, dump_games, dump_history,
-        migrate_games, migrate_history, get_price_currency, is_lower_price,
+        migrate_games, migrate_history, get_price_currency, apply_game_update,
     )
     from price_api import fetch_game_details
-    from notifier import send_price_alert, send_summary_email
+    from notifier import send_price_alert, send_summary_email, send_sale_alert
     from utils import format_price
 
     gh = GitHubManager(GITHUB_TOKEN, REPO_OWNER, REPO_NAME)
@@ -87,57 +87,85 @@ def main():
         price = details.current_price
         currency = details.currency
 
-        if price is None:
-            logger.warning("Could not fetch price for %s (%s)", name, game_id)
-            continue
+        events = apply_game_update(game, details)
+        currency = get_price_currency(game, "current_price")
+        price = game.get("current_price")
 
-        old_lowest = game.get("lowest_price")
-        old_lowest_currency = get_price_currency(game, "lowest_price")
-
-        games = update_game_price(games, game_id, price, currency)
-        history = update_price_history(history, game_id, price, currency)
+        if details.current_price is not None:
+            history = update_price_history(
+                history, game_id, price, currency,
+                is_on_sale=game.get("is_on_sale"),
+                discount_percent=game.get("discount_percent"),
+            )
+        else:
+            logger.warning("Could not fetch price for %s (%s) — keeping last known data", name, game_id)
 
         updated = next(g for g in games if g["id"] == game_id)
         diff = detect_price_change(history, game_id, price, currency)
-        is_new_low = (
-            old_lowest is not None
-            and is_lower_price(price, currency, old_lowest, old_lowest_currency)
-        )
+        is_new_low = events.get("new_low")
 
-        if diff is not None:
+        prev_price = (price - diff) if (diff is not None and price is not None) else None
+
+        alert = {
+            "name": name,
+            "store": store,
+            "price": format_price(price, currency),
+            "prev_price": prev_price,
+            "current_price": price,
+            "diff": diff,
+            "diff_str": format_price(abs(diff), currency) if diff is not None else None,
+            "game_id": game_id,
+            "currency": currency,
+            "cover_image": game.get("cover_image", ""),
+            "lowest_price": updated.get("lowest_price"),
+            "lowest_currency": get_price_currency(updated, "lowest_price"),
+            "target_price": target_price,
+            "target_currency": target_currency,
+            "is_on_sale": updated.get("is_on_sale", False),
+            "original_price": updated.get("original_price"),
+            "discount_percent": updated.get("discount_percent", 0),
+        }
+
+        flagged = any(events.values())
+        if flagged:
             any_change = True
-            prev_price = price - diff
-            alerts.append({
-                "name": name,
-                "store": store,
-                "price": format_price(price, currency),
-                "prev_price": prev_price,
-                "current_price": price,
-                "diff": diff,
-                "diff_str": format_price(abs(diff), currency),
-                "game_id": game_id,
-                "currency": currency,
-                "cover_image": game.get("cover_image", ""),
-                "lowest_price": updated.get("lowest_price"),
-                "lowest_currency": get_price_currency(updated, "lowest_price"),
-                "target_price": target_price,
-                "target_currency": target_currency,
-                "is_new_low": is_new_low,
-            })
-            logger.info("Price changed for %s: diff=%s", name, format_price(diff, currency))
+            alerts.append(alert)
 
-            if EMAIL_ADDRESS and EMAIL_PASSWORD:
-                try:
-                    send_price_alert(
-                        EMAIL_ADDRESS, EMAIL_PASSWORD, NOTIFY_TO,
-                        name, store, price, prev_price, diff,
-                        updated.get("lowest_price"),
-                        get_price_currency(updated, "lowest_price"),
-                        target_price, target_currency,
-                        game.get("cover_image", ""), currency, is_new_low,
-                    )
-                except Exception as e:
-                    logger.error("Failed to send alert email for %s: %s", name, e)
+        if not flagged:
+            continue
+
+        # ── Sale / price notifications ───────────────────────
+        if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
+            continue
+
+        try:
+            if events.get("sale_detected") or events.get("discount_increased") or events.get("discount_changed"):
+                send_sale_alert(
+                    EMAIL_ADDRESS, EMAIL_PASSWORD, NOTIFY_TO,
+                    name, store, price, updated.get("original_price"),
+                    updated.get("discount_percent") or 0, game.get("cover_image", ""),
+                    currency, sale_started=bool(events.get("sale_detected")),
+                )
+            if events.get("price_changed") and diff is not None:
+                send_price_alert(
+                    EMAIL_ADDRESS, EMAIL_PASSWORD, NOTIFY_TO,
+                    name, store, price, prev_price, diff,
+                    updated.get("lowest_price"),
+                    get_price_currency(updated, "lowest_price"),
+                    target_price, target_currency,
+                    game.get("cover_image", ""), currency, is_new_low,
+                )
+            elif is_new_low:
+                send_price_alert(
+                    EMAIL_ADDRESS, EMAIL_PASSWORD, NOTIFY_TO,
+                    name, store, price, prev_price, 0,
+                    updated.get("lowest_price"),
+                    get_price_currency(updated, "lowest_price"),
+                    target_price, target_currency,
+                    game.get("cover_image", ""), currency, True,
+                )
+        except Exception as e:
+            logger.error("Failed to send alert for %s: %s", name, e)
 
     commit_msg = "chore: update game prices"
     if games_migrated or history_migrated:

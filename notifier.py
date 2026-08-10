@@ -281,6 +281,95 @@ def send_price_alert(
     )
 
 
+def build_sale_email(
+    game_name: str,
+    store: str,
+    current_price: Optional[float],
+    original_price: Optional[float],
+    discount_percent: int,
+    cover_image: str,
+    currency: str = "INR",
+    sale_started: bool = True,
+) -> str:
+    """Build the "is now on sale" alert body (also used for discount increases)."""
+    current_str = format_price(current_price, currency)
+    original_str = format_price(original_price, currency)
+    savings = (
+        format_price(original_price - current_price, currency)
+        if original_price is not None and current_price is not None
+        else "—"
+    )
+
+    store_badge = ""
+    store_lower = store.lower()
+    if "steam" in store_lower:
+        store_badge = '<span style="display:inline-block;background:#1b2838;color:#66c0f4;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;">STEAM</span>'
+    elif "epic" in store_lower:
+        store_badge = '<span style="display:inline-block;background:#121212;color:#ffffff;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;">EPIC GAMES</span>'
+    elif "gog" in store_lower:
+        store_badge = '<span style="display:inline-block;background:#2b2b2b;color:#d2b48c;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;">GOG</span>'
+
+    headline = "\U0001F525 Now on sale" if sale_started else "\u2191 Discount increased"
+    cover_html = ""
+    if cover_image:
+        cover_html = (
+            f'<img src="{cover_image}" alt="{game_name}" '
+            f'style="width:100%;max-width:460px;border-radius:12px;margin-bottom:16px;">'
+        )
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background-color:#0b1120;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0b1120;padding:24px;">
+<tr><td align="center">
+<table width="540" cellpadding="0" cellspacing="0" style="background:linear-gradient(145deg,#052e16,#0f172a);border-radius:18px;padding:28px;border:1px solid rgba(34,197,94,0.35);box-shadow:0 8px 32px rgba(34,197,94,0.15);">
+<tr><td style="text-align:center;">
+{cover_html}
+{store_badge}
+<h1 style="color:#f1f5f9;font-size:24px;margin:12px 0 4px 0;font-weight:700;">{game_name}</h1>
+<div style="color:#22c55e;font-size:16px;font-weight:700;margin:10px 0 4px 0;">{headline}</div>
+<table width="100%" cellpadding="10" cellspacing="0" style="margin:16px 0;background:rgba(15,23,42,0.6);border-radius:12px;">
+<tr><td style="color:#94a3b8;font-size:14px;border-bottom:1px solid rgba(51,65,85,0.5);">Current Price</td><td style="text-align:right;color:#22c55e;font-size:22px;font-weight:700;border-bottom:1px solid rgba(51,65,85,0.5);">{current_str}</td></tr>
+<tr><td style="color:#94a3b8;font-size:14px;border-bottom:1px solid rgba(51,65,85,0.5);">Original Price</td><td style="text-align:right;color:#94a3b8;font-size:16px;border-bottom:1px solid rgba(51,65,85,0.5);"><s>{original_str}</s></td></tr>
+<tr><td style="color:#94a3b8;font-size:14px;border-bottom:1px solid rgba(51,65,85,0.5);">Discount</td><td style="text-align:right;color:#4ade80;font-size:16px;font-weight:700;border-bottom:1px solid rgba(51,65,85,0.5);">-{discount_percent}%</td></tr>
+<tr><td style="color:#94a3b8;font-size:14px;">Your Savings</td><td style="text-align:right;color:#4ade80;font-size:16px;font-weight:700;">{savings}</td></tr>
+</table>
+<p style="color:#475569;font-size:11px;margin:20px 0 0 0;letter-spacing:0.5px;">GAME PRICE TRACKER &middot; \U0001F525 SALE ALERT</p>
+</td></tr></table>
+</td></tr></table>
+</body>
+</html>"""
+    return html
+
+
+def send_sale_alert(
+    email_address: str,
+    email_password: str,
+    to_address: str,
+    game_name: str,
+    store: str,
+    current_price: Optional[float],
+    original_price: Optional[float],
+    discount_percent: int,
+    cover_image: str,
+    currency: str = "INR",
+    sale_started: bool = True,
+    smtp_server: str = "smtp.gmail.com",
+    smtp_port: int = 587,
+) -> bool:
+    headline = f"{game_name} is now on sale" if sale_started else f"{game_name} discount increased"
+    subject = f"\U0001F525 {headline}"
+    html = build_sale_email(
+        game_name, store, current_price, original_price, discount_percent,
+        cover_image, currency, sale_started,
+    )
+    return send_email(
+        smtp_server, smtp_port, email_address, email_password,
+        to_address, subject, html,
+    )
+
+
 def send_summary_email(
     email_address: str,
     email_password: str,

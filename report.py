@@ -1,7 +1,10 @@
 import logging
 from typing import Optional
 
-from database import detect_price_change, get_history_prices, get_price_currency, is_target_met
+from database import (
+    detect_price_change, get_history_prices, get_price_currency, is_target_met,
+    HISTORY_SALE_KEY, group_games_by_identity,
+)
 from utils import format_price, today_str
 
 logger = logging.getLogger(__name__)
@@ -80,6 +83,87 @@ def _build_section(title: str, icon: str, content: str) -> str:
 </td></tr>"""
 
 
+STORE_NAMES = {"steam": "Steam", "epic": "Epic Games", "gog": "GOG"}
+
+
+def _cross_store_deals_section(games: list[dict]) -> str:
+    """Best cross-store deals for games tracked on both Steam and Epic."""
+    grouped = group_games_by_identity(games)
+    blocks = []
+
+    for listings in grouped.values():
+        steam = next((g for g in listings if g.get("store") == "steam"), None)
+        epic = next((g for g in listings if g.get("store") == "epic"), None)
+        if not steam or not epic:
+            continue
+
+        name = steam.get("name") or epic.get("name") or "Unknown"
+        rows = []
+        cheapest_store = None
+        cheapest_price = None
+
+        for label, g in (("Steam", steam), ("Epic", epic)):
+            current = g.get("current_price")
+            currency = g.get("current_currency", "INR")
+            disc = g.get("discount_percent") or 0
+            price_str = format_price(current, currency)
+            if disc > 0:
+                price_str += f" (-{disc}%)"
+            rows.append(f"{label}: {price_str}")
+            if current is not None and (cheapest_price is None or current < cheapest_price):
+                cheapest_price = current
+                cheapest_store = label
+
+        winner = ""
+        if cheapest_store and steam.get("current_price") is not None and epic.get("current_price") is not None:
+            prices = [steam.get("current_price"), epic.get("current_price")]
+            if max(prices) > min(prices):
+                winner = f"<p style=\"color:#22c55e;font-size:13px;margin:8px 0 0;\">🏆 Cheapest: <strong>{cheapest_store}</strong></p>"
+
+        blocks.append(
+            f"<div style=\"margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(51,65,85,0.25);\">"
+            f"<div style=\"color:#f1f5f9;font-size:15px;font-weight:700;margin-bottom:6px;\">{name}</div>"
+            f"<div style=\"color:#94a3b8;font-size:13px;line-height:1.6;\">{'<br>'.join(rows)}</div>"
+            f"{winner}</div>"
+        )
+
+    if not blocks:
+        return '<p style="color:#64748b;font-size:13px;">No games tracked on both Steam and Epic yet.</p>'
+    return "".join(blocks[:10])
+
+
+def _new_sales_today_section(games: list[dict]) -> str:
+    today = today_str()
+    new_sales = [
+        g for g in games
+        if g.get("is_on_sale") and g.get("sale_started") == today
+    ]
+    if not new_sales:
+        return '<p style="color:#64748b;font-size:13px;">No new sales started today.</p>'
+
+    rows = ""
+    for g in new_sales:
+        name = g.get("name", "?")
+        store = STORE_NAMES.get(g.get("store", ""), g.get("store", ""))
+        disc = g.get("discount_percent") or 0
+        current = g.get("current_price")
+        currency = g.get("current_currency", "INR")
+        rows += f"""<tr>
+<td style="padding:8px 6px;border-bottom:1px solid rgba(51,65,85,0.2);">{name}</td>
+<td style="padding:8px 6px;border-bottom:1px solid rgba(51,65,85,0.2);">{store}</td>
+<td style="padding:8px 6px;border-bottom:1px solid rgba(51,65,85,0.2);text-align:right;color:#22c55e;font-weight:700;">-{disc}%</td>
+<td style="padding:8px 6px;border-bottom:1px solid rgba(51,65,85,0.2);text-align:right;">{format_price(current, currency)}</td>
+</tr>"""
+
+    return f"""<table width="100%" cellpadding="0" cellspacing="0">
+<tr style="color:#64748b;font-size:10px;text-transform:uppercase;">
+<th style="text-align:left;padding:4px 6px 8px;">Game</th>
+<th style="text-align:left;padding:4px 6px 8px;">Store</th>
+<th style="text-align:right;padding:4px 6px 8px;">Discount</th>
+<th style="text-align:right;padding:4px 6px 8px;">Current Price</th>
+</tr>{rows}</table>"""
+
+
 def _dashboard_section(games: list[dict], history: dict) -> str:
     total = len(games)
     on_sale_count = 0
@@ -95,6 +179,9 @@ def _dashboard_section(games: list[dict], history: dict) -> str:
         current = g.get("current_price")
         curr_currency = g.get("current_currency", "INR")
 
+        if g.get("is_on_sale"):
+            on_sale_count += 1
+
         if current is not None:
             if cheapest_price is None or current < cheapest_price:
                 cheapest_price = current
@@ -106,8 +193,6 @@ def _dashboard_section(games: list[dict], history: dict) -> str:
         diff = detect_price_change(history, cid, current, curr_currency)
         if diff is not None and diff != 0:
             changed_count += 1
-            if diff < 0:
-                on_sale_count += 1
 
         hist_prices = get_history_prices(history, cid)
         if current is not None and len(hist_prices) >= 2:
@@ -117,9 +202,16 @@ def _dashboard_section(games: list[dict], history: dict) -> str:
 
     free_count = sum(1 for g in games if g.get("current_price") is not None and g["current_price"] == 0)
 
+    on_sale_list = [g for g in games if g.get("is_on_sale")]
+    biggest_discount = max((g.get("discount_percent") or 0 for g in on_sale_list), default=0)
+    avg_discount = (
+        round(sum(g.get("discount_percent") or 0 for g in on_sale_list) / len(on_sale_list))
+        if on_sale_list else 0
+    )
+
     cards = [
         ("🎮", "Tracked", str(total), ""),
-        ("🏷️", "On Sale", str(on_sale_count), "#22c55e"),
+        ("🔥", "Games On Sale", str(on_sale_count), "#22c55e"),
         ("📉", "Price Changed", str(changed_count), "#f59e0b"),
         ("🏆", "New Lows", str(new_low_count), "#8b5cf6"),
     ]
@@ -141,6 +233,8 @@ def _dashboard_section(games: list[dict], history: dict) -> str:
         extras += f'<p style="color:#94a3b8;font-size:13px;margin:4px 0 0;">Most expensive: <strong style="color:#ef4444;">{most_expensive.get("name","?")}</strong> — {format_price(most_expensive_price, most_expensive.get("current_currency","INR"))}</p>'
     if free_count > 0:
         extras += f'<p style="color:#94a3b8;font-size:13px;margin:4px 0 0;">Free games tracked: <strong style="color:#22c55e;">{free_count}</strong></p>'
+    if on_sale_list:
+        extras += f'<p style="color:#94a3b8;font-size:13px;margin:4px 0 0;">Biggest discount: <strong style="color:#22c55e;">{biggest_discount}%</strong> &middot; Average discount: <strong style="color:#22c55e;">{avg_discount}%</strong></p>'
 
     return f"""<table width="100%" cellpadding="0" cellspacing="0"><tr>{cards_html}</tr></table>{extras}"""
 
@@ -363,6 +457,63 @@ def _wishlist_section(games: list[dict]) -> str:
 </tr>{items}</table>"""
 
 
+def _sales_section(games: list[dict], history: dict) -> str:
+    on_sale = [g for g in games if g.get("is_on_sale")]
+    on_sale.sort(key=lambda g: (g.get("discount_percent") or 0), reverse=True)
+
+    items = ""
+    if on_sale:
+        for g in on_sale:
+            name = g.get("name", "?")
+            store = g.get("store", "")
+            disc = g.get("discount_percent") or 0
+            current = g.get("current_price")
+            currency = g.get("current_currency", "INR")
+            items += f"""<tr>
+<td style="padding:8px 6px;border-bottom:1px solid rgba(51,65,85,0.2);vertical-align:middle;">
+<div style="color:#f1f5f9;font-size:13px;font-weight:600;">{name}</div>
+<div style="margin-top:1px;">{_store_badge(store)}</div>
+</td>
+<td style="padding:8px 6px;border-bottom:1px solid rgba(51,65,85,0.2);vertical-align:middle;text-align:right;white-space:nowrap;">
+<span style="color:#22c55e;font-size:14px;font-weight:800;">-{disc}% OFF</span>
+<div style="color:#94a3b8;font-size:12px;">{format_price(current, currency)}</div>
+</td>
+</tr>"""
+        items = f"""<table width="100%" cellpadding="0" cellspacing="0">
+<tr style="color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">
+<th style="text-align:left;padding:4px 6px 8px;border-bottom:1px solid rgba(51,65,85,0.3);">Game</th>
+<th style="text-align:right;padding:4px 6px 8px;border-bottom:1px solid rgba(51,65,85,0.3);">Discount</th>
+</tr>{items}</table>"""
+    else:
+        items = '<p style="color:#64748b;font-size:13px;">No games are on sale right now.</p>'
+
+    # Biggest discount today + sales that ended today, from history sale metadata.
+    today_sales_ended = []
+    for g in games:
+        cid = g["id"]
+        sales = (history.get(cid) or {}).get(HISTORY_SALE_KEY) or {}
+        dates = sorted(k for k in sales if k != HISTORY_SALE_KEY) if isinstance(sales, dict) else []
+        if g.get("is_on_sale"):
+            continue
+        # ended today if previously on sale and not now
+        if len(dates) >= 2:
+            prev_on = sales[dates[-2]].get("is_on_sale")
+            now_on = sales[dates[-1]].get("is_on_sale")
+            if prev_on and not now_on:
+                today_sales_ended.append(g.get("name", "?"))
+        elif len(dates) == 1 and not sales[dates[0]].get("is_on_sale") and g.get("sale_started") is None and g.get("discount_percent", 0) == 0:
+            pass
+
+    extras = ""
+    if on_sale:
+        top = on_sale[0]
+        extras += f'<p style="color:#94a3b8;font-size:13px;margin:10px 0 0;">Biggest Discount Today: <strong style="color:#22c55e;">{top.get("discount_percent",0)}% — {top.get("name","?")}</strong></p>'
+    if today_sales_ended:
+        extras += f'<p style="color:#f59e0b;font-size:13px;margin:4px 0 0;">Sales ended today: <strong style="color:#ef4444;">{" &middot; ".join(today_sales_ended)}</strong></p>'
+
+    return items + extras
+
+
 def _insights_section(games: list[dict], history: dict) -> str:
     price_drops = []
     price_hikes = []
@@ -429,11 +580,17 @@ def build_daily_report(games: list[dict], history: dict) -> str:
     sections = [
         _build_section("Dashboard Summary", "📊", _dashboard_section(games, history)),
         DIVIDER,
+        _build_section("Best Cross-Store Deals", "🔥", _cross_store_deals_section(games)),
+        DIVIDER,
+        _build_section("New Sales Today", "🔥", _new_sales_today_section(games)),
+        DIVIDER,
         _build_section("Tracked Games", "📋", _tracked_games_section(games)),
         DIVIDER,
         _build_section("Price Changes", "📈", _price_changes_section(games, history)),
         DIVIDER,
         _build_section("New Lowest Prices", "🏆", _new_lows_section(games, history)),
+        DIVIDER,
+        _build_section("Games Currently On Sale", "🔥", _sales_section(games, history)),
         DIVIDER,
         _build_section("Buy Recommendations", "🔥", _buy_recs_section(games, history)),
         DIVIDER,
