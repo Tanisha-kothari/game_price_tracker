@@ -296,5 +296,25 @@
     "last_checked": "2026-08-10",
     "currency": "INR",
     "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1766060/f6d26a2b241d9cb955c735738d45e5a6d4d78c25/header.jpg?t=1770400758"
+  },
+  {
+    "id": "epic_the-survivalists",
+    "game_id": "the-survivalists",
+    "name": "The Survivalists",
+    "store": "epic",
+    "url": "https://store.epicgames.com/p/the-survivalists",
+    "current_price": 399.8,
+    "current_currency": "INR",
+    "original_price": 1999.0,
+    "discount_percent": 80,
+    "is_on_sale": true,
+    "sale_started": "2026-08-10",
+    "sale_last_seen": "2026-08-10",
+    "sale_end": null,
+    "lowest_price": 399.8,
+    "lowest_currency": "INR",
+    "last_checked": "2026-08-10",
+    "currency": "INR",
+    "cover_image": "https://cdn1.epicgames.com/spt-assets/461d258b51204df48ff688cd5a1dcf76/the-survivalists-hn0bd.png"
   }
 ]
