@@ -779,6 +779,12 @@ def remove_saved_combination(combos: list[dict], combo_id: str) -> list[dict]:
     return [c for c in combos if c.get("id") != combo_id]
 
 
+# Compatibility Aliases for Saved Combination Helper Functions
+delete_saved_combination = remove_saved_combination
+save_saved_combinations = dump_saved_combinations
+get_saved_combinations = load_saved_combinations
+
+
 # ── Custom Tags Helper Functions ─────────────────────────────────────
 
 def add_custom_tag_to_game(games: list[dict], game_id: str, tag_name: str) -> bool:
