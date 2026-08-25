@@ -53,8 +53,9 @@ CUSTOM_CSS = """
     }
 
     .stApp {
-        background-color: #090d16 !important;
-        color: #e2e8f0 !important;
+        background: var(--theme-bg-body, #090d16) !important;
+        color: var(--theme-text-primary, #e2e8f0) !important;
+        font-family: var(--theme-font-family, 'Inter', -apple-system, sans-serif) !important;
     }
 
     .block-container {
@@ -69,18 +70,19 @@ CUSTOM_CSS = """
         z-index: 100 !important;
     }
     button[data-testid="stSidebarCollapseButton"], button[data-testid="baseButton-headerNoPadding"] {
-        color: #94a3b8 !important;
-        background: #121827 !important;
-        border: 1px solid #1f293d !important;
-        border-radius: 6px !important;
+        color: var(--theme-text-muted, #94a3b8) !important;
+        background: var(--theme-bg-card, #121827) !important;
+        border: 1px solid var(--theme-border-color, #1f293d) !important;
+        border-radius: var(--theme-button-radius, 6px) !important;
     }
     button[data-testid="stSidebarCollapseButton"]:hover {
-        color: #f8fafc !important;
-        background: #1a2238 !important;
+        color: var(--theme-text-primary, #f8fafc) !important;
+        background: var(--theme-bg-card-elevated, #1a2238) !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
-        color: #f8fafc !important;
+        color: var(--theme-text-primary, #f8fafc) !important;
+        font-family: var(--theme-font-family, 'Inter', sans-serif) !important;
         font-weight: 700 !important;
         letter-spacing: -0.02em;
         margin: 0 0 0.5rem 0;
@@ -88,15 +90,15 @@ CUSTOM_CSS = """
 
     /* ── Persistent Left Sidebar Navigation ─────────────────── */
     section[data-testid="stSidebar"] {
-        background-color: #0d121f !important;
-        border-right: 1px solid #1a2337 !important;
+        background-color: var(--theme-bg-sidebar, #0d121f) !important;
+        border-right: 1px solid var(--theme-border-color, #1a2337) !important;
         min-width: 230px !important;
         max-width: 250px !important;
         width: 240px !important;
         flex-shrink: 0 !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stSidebarContent"] {
-        background-color: #0d121f !important;
+        background-color: var(--theme-bg-sidebar, #0d121f) !important;
         padding: 1.1rem 0.85rem !important;
     }
     section[data-testid="stSidebar"] .block-container {
@@ -110,7 +112,7 @@ CUSTOM_CSS = """
         gap: 10px;
         padding: 2px 4px 12px;
         margin-bottom: 10px;
-        border-bottom: 1px solid #1a2337;
+        border-bottom: 1px solid var(--theme-border-subtle, #1a2337);
     }
     .sidebar-brand-icon {
         font-size: 22px;
@@ -123,12 +125,13 @@ CUSTOM_CSS = """
     .sidebar-brand-title {
         font-size: 17px;
         font-weight: 800;
-        color: #f8fafc;
+        color: var(--theme-text-primary, #f8fafc);
+        font-family: var(--theme-font-family, 'Inter', sans-serif);
         letter-spacing: -0.03em;
     }
     .sidebar-brand-subtitle {
         font-size: 11px;
-        color: #64748b;
+        color: var(--theme-text-muted, #64748b);
         font-weight: 500;
     }
 
@@ -143,9 +146,9 @@ CUSTOM_CSS = """
     section[data-testid="stSidebar"] div[data-testid="stRadio"] label {
         background: transparent;
         border: 1px solid transparent;
-        border-radius: 8px;
+        border-radius: var(--theme-button-radius, 8px);
         padding: 9px 12px;
-        color: #94a3b8;
+        color: var(--theme-text-secondary, #94a3b8);
         font-weight: 500;
         font-size: 13.5px;
         cursor: pointer;
@@ -156,18 +159,17 @@ CUSTOM_CSS = """
         transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {
-        background: #151c2e;
-        color: #f8fafc;
-        border-color: #1a2337;
+        background: var(--theme-bg-card-elevated, #151c2e);
+        color: var(--theme-text-primary, #f8fafc);
+        border-color: var(--theme-border-subtle, #1a2337);
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {
-        background: #1a2238;
-        border-color: #4f46e5;
-        color: #f8fafc;
+        background: var(--theme-bg-card-elevated, #1a2238);
+        border-color: var(--theme-accent-primary, #4f46e5);
+        color: var(--theme-text-primary, #f8fafc);
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     }
-    /* Hide the small default radio circle so it looks like a clean nav button */
     section[data-testid="stSidebar"] div[data-testid="stRadio"] label > div:first-child {
         display: none !important;
     }
@@ -184,44 +186,44 @@ CUSTOM_CSS = """
     }
 
     .sidebar-status-card {
-        background: #121827;
-        border: 1px solid #1a2337;
-        border-radius: 8px;
+        background: var(--theme-bg-card, #121827);
+        border: 1px solid var(--theme-border-color, #1a2337);
+        border-radius: var(--theme-card-radius, 8px);
         padding: 10px 12px;
         margin-top: 20px;
     }
 
     /* ── Form Inputs ────────────────────────────────────────── */
     .stTextInput input, .stNumberInput input {
-        background: #121827 !important;
-        color: #f8fafc !important;
-        border: 1px solid #1f293d !important;
-        border-radius: 8px !important;
+        background: var(--theme-bg-input, #121827) !important;
+        color: var(--theme-text-primary, #f8fafc) !important;
+        border: 1px solid var(--theme-border-color, #1f293d) !important;
+        border-radius: var(--theme-input-radius, 8px) !important;
         padding: 10px 14px !important;
         font-size: 14px !important;
         transition: all 0.2s ease;
     }
     .stTextInput input:focus, .stNumberInput input:focus {
-        background: #182035 !important;
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+        background: var(--theme-bg-input, #182035) !important;
+        border-color: var(--theme-accent-primary, #6366f1) !important;
+        box-shadow: 0 0 0 3px var(--theme-accent-bg, rgba(99, 102, 241, 0.2)) !important;
     }
-    .stTextInput input::placeholder { color: #64748b; }
+    .stTextInput input::placeholder { color: var(--theme-text-muted, #64748b); }
 
     div[data-baseweb="select"] > div {
-        background-color: #121827 !important;
-        border: 1px solid #1f293d !important;
-        border-radius: 8px !important;
-        color: #f8fafc !important;
+        background-color: var(--theme-bg-input, #121827) !important;
+        border: 1px solid var(--theme-border-color, #1f293d) !important;
+        border-radius: var(--theme-input-radius, 8px) !important;
+        color: var(--theme-text-primary, #f8fafc) !important;
         font-size: 13px !important;
     }
 
-    /* ── Non-Wrapping Buttons with Comfortable Padding ──────── */
+    /* ── Non-Wrapping Buttons ───────────────────────────────── */
     div.stButton > button {
-        background: #1e293b !important;
-        color: #e2e8f0 !important;
-        border: 1px solid #334155 !important;
-        border-radius: 8px !important;
+        background: var(--theme-btn-secondary-bg, #1e293b) !important;
+        color: var(--theme-btn-secondary-text, #e2e8f0) !important;
+        border: 1px solid var(--theme-border-color, #334155) !important;
+        border-radius: var(--theme-button-radius, 8px) !important;
         padding: 8px 16px !important;
         font-weight: 600 !important;
         font-size: 13px !important;
@@ -231,11 +233,11 @@ CUSTOM_CSS = """
         transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     div.stButton > button:hover {
-        background: #334155 !important;
-        border-color: #64748b !important;
-        color: #ffffff !important;
+        background: var(--theme-bg-card-elevated, #334155) !important;
+        border-color: var(--theme-border-hover, #64748b) !important;
+        color: var(--theme-text-primary, #ffffff) !important;
         transform: translateY(-1.5px) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+        box-shadow: var(--theme-shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.35)) !important;
     }
     div.stButton > button:active {
         transform: translateY(0) !important;
@@ -243,34 +245,34 @@ CUSTOM_CSS = """
 
     /* Primary CTA */
     div.stButton > button[kind="primary"], div.stButton > button[data-testid="baseButton-primary"] {
-        background: #4f46e5 !important;
-        border: 1px solid #6366f1 !important;
-        color: #ffffff !important;
-        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35) !important;
+        background: var(--theme-btn-primary-bg, #4f46e5) !important;
+        border: 1px solid var(--theme-accent-primary, #6366f1) !important;
+        color: var(--theme-btn-primary-text, #ffffff) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
     }
     div.stButton > button[kind="primary"]:hover, div.stButton > button[data-testid="baseButton-primary"]:hover {
-        background: #4338ca !important;
-        border-color: #818cf8 !important;
-        box-shadow: 0 4px 16px rgba(79, 70, 229, 0.5) !important;
+        opacity: 0.9 !important;
+        border-color: var(--theme-accent-secondary, #818cf8) !important;
+        box-shadow: var(--theme-shadow-hover, 0 4px 16px rgba(0, 0, 0, 0.35)) !important;
     }
 
     /* Secondary / Delete */
     div.stButton > button[kind="secondary"] {
-        background: #121827 !important;
-        border: 1px solid #334155 !important;
-        color: #94a3b8 !important;
+        background: var(--theme-bg-card, #121827) !important;
+        border: 1px solid var(--theme-border-color, #334155) !important;
+        color: var(--theme-text-secondary, #94a3b8) !important;
     }
     div.stButton > button[kind="secondary"]:hover {
         background: rgba(239, 68, 68, 0.12) !important;
         border-color: rgba(239, 68, 68, 0.4) !important;
-        color: #f87171 !important;
+        color: var(--theme-warning, #f87171) !important;
     }
 
     div.stDownloadButton > button, div.stLinkButton > a {
-        background: #121827 !important;
-        border: 1px solid #1f293d !important;
-        border-radius: 8px !important;
-        color: #cbd5e1 !important;
+        background: var(--theme-bg-card, #121827) !important;
+        border: 1px solid var(--theme-border-color, #1f293d) !important;
+        border-radius: var(--theme-button-radius, 8px) !important;
+        color: var(--theme-text-secondary, #cbd5e1) !important;
         padding: 8px 16px !important;
         font-weight: 500 !important;
         font-size: 13px !important;
@@ -283,9 +285,9 @@ CUSTOM_CSS = """
         transition: all 0.15s ease !important;
     }
     div.stDownloadButton > button:hover, div.stLinkButton > a:hover {
-        background: #1e293b !important;
-        border-color: #475569 !important;
-        color: #f8fafc !important;
+        background: var(--theme-bg-card-elevated, #1e293b) !important;
+        border-color: var(--theme-border-hover, #475569) !important;
+        color: var(--theme-text-primary, #f8fafc) !important;
         transform: translateY(-1px) !important;
     }
 
@@ -295,25 +297,25 @@ CUSTOM_CSS = """
         flex-wrap: wrap;
     }
     .main-view-container div[data-testid="stRadio"] label {
-        background: #121827;
-        border: 1px solid #1f293d;
-        border-radius: 8px;
+        background: var(--theme-bg-card, #121827);
+        border: 1px solid var(--theme-border-color, #1f293d);
+        border-radius: var(--theme-button-radius, 8px);
         padding: 6px 16px;
-        color: #94a3b8;
+        color: var(--theme-text-secondary, #94a3b8);
         font-weight: 500;
         font-size: 13px;
         cursor: pointer;
         transition: all 0.15s ease;
     }
     .main-view-container div[data-testid="stRadio"] label:hover {
-        color: #f8fafc;
-        border-color: #475569;
+        color: var(--theme-text-primary, #f8fafc);
+        border-color: var(--theme-border-hover, #475569);
         transform: translateY(-1px);
     }
     .main-view-container div[data-testid="stRadio"] label:has(input:checked) {
-        background: #1a2238;
-        border-color: #6366f1;
-        color: #f8fafc;
+        background: var(--theme-bg-card-elevated, #1a2238);
+        border-color: var(--theme-accent-primary, #6366f1);
+        color: var(--theme-text-primary, #f8fafc);
         font-weight: 600;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
@@ -326,19 +328,20 @@ CUSTOM_CSS = """
         margin-bottom: 22px;
     }
     .sum-card {
-        background: #121827;
-        border: 1px solid #1f293d;
-        border-radius: 10px;
+        background: var(--theme-bg-card, #121827);
+        border: 1px solid var(--theme-border-color, #1f293d);
+        border-radius: var(--theme-card-radius, 10px);
         padding: 14px 16px;
         display: flex;
         align-items: center;
         gap: 12px;
+        box-shadow: var(--theme-shadow-card, 0 4px 12px rgba(0,0,0,0.2));
         transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
     .sum-card:hover {
         transform: translateY(-2px);
-        border-color: #334155;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+        border-color: var(--theme-border-hover, #334155);
+        box-shadow: var(--theme-shadow-hover, 0 6px 18px rgba(0, 0, 0, 0.3));
     }
     .sum-icon {
         font-size: 22px;
@@ -348,7 +351,7 @@ CUSTOM_CSS = """
         width: 38px;
         height: 38px;
         border-radius: 8px;
-        background: #1a2238;
+        background: var(--theme-bg-card-elevated, #1a2238);
     }
     .sum-info {
         display: flex;
@@ -359,36 +362,37 @@ CUSTOM_CSS = """
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #64748b;
+        color: var(--theme-text-muted, #64748b);
         margin-bottom: 2px;
     }
     .sum-val {
         font-size: 20px;
         font-weight: 800;
-        color: #f8fafc;
+        color: var(--theme-text-primary, #f8fafc);
+        font-family: var(--theme-font-family, 'Inter', sans-serif);
     }
-    .sum-val.sale { color: #4ade80; }
-    .sum-val.accent { color: #818cf8; }
+    .sum-val.sale { color: var(--theme-sale, #4ade80); }
+    .sum-val.accent { color: var(--theme-accent-primary, #818cf8); }
 
     /* ── Unified Self-Contained Game Card ───────────────────── */
     .game-card-wrapper {
-        background: #121827;
-        border: 1px solid #1f293d;
-        border-radius: 12px;
+        background: var(--theme-bg-card, #121827);
+        border: 1px solid var(--theme-border-color, #1f293d);
+        border-radius: var(--theme-card-radius, 12px);
         padding: 18px 20px 14px;
         margin-bottom: 18px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        box-shadow: var(--theme-shadow-card, 0 4px 16px rgba(0, 0, 0, 0.25));
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
                     border-color 0.2s ease,
                     box-shadow 0.2s ease;
     }
     .game-card-wrapper:hover {
         transform: translateY(-2px);
-        border-color: #334155;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        border-color: var(--theme-border-hover, #334155);
+        box-shadow: var(--theme-shadow-hover, 0 8px 24px rgba(0, 0, 0, 0.35));
     }
     .game-card-wrapper.on-sale {
-        border-left: 4px solid #22c55e;
+        border-left: 4px solid var(--theme-sale, #22c55e);
     }
 
     .card-layout-flex {
@@ -401,9 +405,9 @@ CUSTOM_CSS = """
     }
     .card-art-wrap {
         overflow: hidden;
-        border-radius: 8px;
+        border-radius: var(--theme-button-radius, 8px);
         aspect-ratio: 16 / 9;
-        background-color: #0b0f19;
+        background-color: var(--theme-bg-sidebar, #0b0f19);
     }
     .card-art-img {
         width: 100%;
@@ -429,7 +433,8 @@ CUSTOM_CSS = """
     .card-game-title {
         font-size: 18px;
         font-weight: 700;
-        color: #f8fafc;
+        color: var(--theme-text-primary, #f8fafc);
+        font-family: var(--theme-font-family, 'Inter', sans-serif);
         line-height: 1.3;
     }
 
@@ -440,19 +445,19 @@ CUSTOM_CSS = """
         letter-spacing: 0.5px;
         padding: 3px 8px;
         border-radius: 4px;
-        background: #1e293b;
-        color: #94a3b8;
-        border: 1px solid #334155;
+        background: var(--theme-bg-card-elevated, #1e293b);
+        color: var(--theme-text-muted, #94a3b8);
+        border: 1px solid var(--theme-border-color, #334155);
     }
-    .store-tag.steam { color: #66c0f4; border-color: rgba(102, 192, 244, 0.25); }
-    .store-tag.epic { color: #f8fafc; border-color: rgba(248, 250, 252, 0.25); }
-    .store-tag.gog { color: #d2b48c; border-color: rgba(210, 180, 140, 0.25); }
+    .store-tag.steam { color: #66c0f4; border-color: rgba(102, 192, 244, 0.3); }
+    .store-tag.epic { color: #f8fafc; border-color: rgba(248, 250, 252, 0.3); }
+    .store-tag.gog { color: #d2b48c; border-color: rgba(210, 180, 140, 0.3); }
 
     .disc-tag {
         display: inline-block;
-        background: rgba(34, 197, 94, 0.15);
-        color: #4ade80;
-        border: 1px solid rgba(34, 197, 94, 0.3);
+        background: var(--theme-sale-bg, rgba(34, 197, 94, 0.15));
+        color: var(--theme-sale, #4ade80);
+        border: 1px solid var(--theme-sale, rgba(34, 197, 94, 0.3));
         border-radius: 4px;
         padding: 2px 7px;
         font-size: 11px;
@@ -461,16 +466,16 @@ CUSTOM_CSS = """
     }
     .price-orig-strike {
         font-size: 13px;
-        color: #64748b;
+        color: var(--theme-text-muted, #64748b);
         text-decoration: line-through;
         margin-left: 8px;
     }
 
     /* ── Dual-Store Side-by-Side Comparison ─────────────────── */
     .compare-section {
-        background: #0d121f;
-        border: 1px solid #1a2337;
-        border-radius: 8px;
+        background: var(--theme-bg-sidebar, #0d121f);
+        border: 1px solid var(--theme-border-color, #1a2337);
+        border-radius: var(--theme-button-radius, 8px);
         padding: 12px 16px;
         margin: 10px 0;
     }
@@ -486,10 +491,11 @@ CUSTOM_CSS = """
     .compare-price-val {
         font-size: 19px;
         font-weight: 800;
-        color: #f8fafc;
+        color: var(--theme-text-primary, #f8fafc);
         margin-top: 4px;
+        font-family: var(--theme-font-family, 'Inter', sans-serif);
     }
-    .compare-price-val.sale { color: #4ade80; }
+    .compare-price-val.sale { color: var(--theme-sale, #4ade80); }
 
     .best-deal-callout {
         display: inline-flex;
@@ -497,9 +503,9 @@ CUSTOM_CSS = """
         gap: 6px;
         font-size: 12px;
         font-weight: 700;
-        color: #4ade80;
-        background: rgba(34, 197, 94, 0.12);
-        border: 1px solid rgba(34, 197, 94, 0.25);
+        color: var(--theme-sale, #4ade80);
+        background: var(--theme-sale-bg, rgba(34, 197, 94, 0.12));
+        border: 1px solid var(--theme-sale, rgba(34, 197, 94, 0.25));
         border-radius: 6px;
         padding: 6px 14px;
         margin-top: 8px;
@@ -507,38 +513,41 @@ CUSTOM_CSS = """
 
     /* ── Search Hero & Search Cards ─────────────────────────── */
     .search-hero-box {
-        background: #121827;
-        border: 1px solid #1f293d;
-        border-radius: 12px;
+        background: var(--theme-bg-card, #121827);
+        border: 1px solid var(--theme-border-color, #1f293d);
+        border-radius: var(--theme-card-radius, 12px);
         padding: 20px 22px;
         margin-bottom: 20px;
+        box-shadow: var(--theme-shadow-card, 0 4px 16px rgba(0,0,0,0.25));
     }
 
     .search-result-card {
-        background: #121827;
-        border: 1px solid #1f293d;
-        border-radius: 10px;
+        background: var(--theme-bg-card, #121827);
+        border: 1px solid var(--theme-border-color, #1f293d);
+        border-radius: var(--theme-card-radius, 10px);
         padding: 16px;
         margin-bottom: 14px;
+        box-shadow: var(--theme-shadow-card, 0 4px 12px rgba(0,0,0,0.2));
         transition: transform 0.2s ease, border-color 0.2s ease;
     }
     .search-result-card:hover {
         transform: translateY(-2px);
-        border-color: #334155;
+        border-color: var(--theme-border-hover, #334155);
+        box-shadow: var(--theme-shadow-hover, 0 6px 18px rgba(0,0,0,0.3));
     }
 
     /* ── Empty State ────────────────────────────────────────── */
     .empty-box {
         text-align: center;
         padding: 48px 24px;
-        background: #121827;
-        border: 1px dashed #1f293d;
-        border-radius: 12px;
-        color: #94a3b8;
+        background: var(--theme-bg-card, #121827);
+        border: 1px dashed var(--theme-border-color, #1f293d);
+        border-radius: var(--theme-card-radius, 12px);
+        color: var(--theme-text-muted, #94a3b8);
     }
     .empty-icon { font-size: 40px; margin-bottom: 8px; }
-    .empty-title { font-size: 17px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
-    .empty-sub { font-size: 13px; color: #64748b; }
+    .empty-title { font-size: 17px; font-weight: 700; color: var(--theme-text-primary, #f8fafc); margin-bottom: 4px; font-family: var(--theme-font-family, 'Inter', sans-serif); }
+    .empty-sub { font-size: 13px; color: var(--theme-text-muted, #64748b); }
 
     /* ── Mobile Layout ──────────────────────────────────────── */
     @media (max-width: 768px) {
@@ -666,6 +675,39 @@ def save_email_prefs_data(gh: GitHubManager, prefs: dict):
         gh.save_email_preferences(prefs, "Update email_preferences.json")
     except Exception as e:
         logger.error("GitHub email_preferences.json sync error: %s", e)
+
+
+def load_theme_settings_data(gh: GitHubManager) -> dict:
+    from database import load_theme_settings
+    try:
+        content = gh.get_file_content("theme_settings.json")
+        if content:
+            return load_theme_settings(content)
+    except Exception as e:
+        logger.info("GitHub theme_settings fetch notice: %s", e)
+
+    if os.path.exists("theme_settings.json"):
+        try:
+            with open("theme_settings.json", "r", encoding="utf-8") as f:
+                return load_theme_settings(f.read())
+        except Exception as e:
+            logger.error("Local theme_settings.json read error: %s", e)
+    return load_theme_settings("")
+
+
+def save_theme_settings_data(gh: GitHubManager, settings: dict):
+    from database import dump_theme_settings
+    content = dump_theme_settings(settings)
+    try:
+        with open("theme_settings.json", "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        logger.error("Local theme_settings.json write error: %s", e)
+
+    try:
+        gh.save_theme_settings(settings, "Update theme_theme_settings.json")
+    except Exception as e:
+        logger.error("GitHub theme_settings.json sync error: %s", e)
 
 
 def is_placeholder_secret(val: str) -> bool:
@@ -937,6 +979,12 @@ def render_store_comparison_box(listings: list[dict]) -> str:
     s_disc_html = f'<span class="disc-tag">-{s_disc}%</span>' if s_disc > 0 else ""
     e_disc_html = f'<span class="disc-tag">-{e_disc}%</span>' if e_disc > 0 else ""
 
+    theme_settings = st.session_state.get("theme_settings", {})
+    t_id = theme_settings.get("theme_id", "midnight_gamer")
+    from themes import get_theme
+    t_obj = get_theme(t_id)
+    best_label = t_obj.get("best_deal_label", "🏆 BEST DEAL")
+
     winner_html = ""
     if s_cur is not None and e_cur is not None:
         if s_cur < e_cur:
@@ -944,7 +992,7 @@ def render_store_comparison_box(listings: list[dict]) -> str:
             curr = get_price_currency(steam, "current_price")
             winner_html = (
                 f'<div class="best-deal-callout">'
-                f'🏆 <strong>BEST DEAL:</strong> Steam (Save {format_price(diff, curr)})'
+                f'<strong>{best_label}:</strong> Steam (Save {format_price(diff, curr)})'
                 f'</div>'
             )
         elif e_cur < s_cur:
@@ -952,12 +1000,12 @@ def render_store_comparison_box(listings: list[dict]) -> str:
             curr = get_price_currency(epic, "current_price")
             winner_html = (
                 f'<div class="best-deal-callout">'
-                f'🏆 <strong>BEST DEAL:</strong> Epic Games (Save {format_price(diff, curr)})'
+                f'<strong>{best_label}:</strong> Epic Games (Save {format_price(diff, curr)})'
                 f'</div>'
             )
         else:
             winner_html = (
-                f'<div class="best-deal-callout" style="color:#94a3b8;border-color:#1a2337;background:#0d121f;">'
+                f'<div class="best-deal-callout" style="color:var(--theme-text-secondary,#94a3b8);border-color:var(--theme-border-color,#1f293d);background:var(--theme-bg-sidebar,#090d16);">'
                 f'⚖️ Same price on Steam and Epic Games'
                 f'</div>'
             )
@@ -1269,6 +1317,25 @@ def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
     store_stats = store_filter_stats(games)
     last_sync = get_last_sync(games)
 
+    theme_settings = st.session_state.get("theme_settings", {})
+    t_id = theme_settings.get("theme_id", "midnight_gamer")
+    p_lvl = theme_settings.get("personality_level", "Subtle")
+    from themes import get_contextual_message
+
+    if on_sale_games:
+        top_sale = max(on_sale_games, key=lambda x: x.get("discount_percent") or 0)
+        c_msg = get_contextual_message("sale", theme_id=t_id, personality_level=p_lvl, discount_percent=top_sale.get("discount_percent") or 0)
+    else:
+        c_msg = get_contextual_message("wallet_safe", theme_id=t_id, personality_level=p_lvl)
+
+    if c_msg:
+        st.markdown(
+            f'<div style="background:var(--theme-accent-bg,rgba(99,102,241,0.12));border:1px solid var(--theme-accent,#6366f1);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:700;color:var(--theme-text-primary,#f8fafc);">'
+            f'{c_msg}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
     st.markdown(
         f'<div class="summary-cards-container">'
         f'<div class="sum-card"><div class="sum-icon">🎮</div><div class="sum-info"><div class="sum-label">Tracked Games</div><div class="sum-val">{unique_games}</div></div></div>'
@@ -1477,7 +1544,12 @@ def render_tracked_games_view(games: list[dict], history: dict, gh: GitHubManage
         display_groups.sort(key=lambda grp: max(g.get("last_checked", "") for g in grp), reverse=True)
 
     if not games:
-        st.markdown('<div class="empty-box"><div class="empty-icon">🎮</div><div class="empty-title">No games tracked yet</div><div class="empty-sub">Use Search Games in the sidebar to find and track titles.</div></div>', unsafe_allow_html=True)
+        theme_settings = st.session_state.get("theme_settings", {})
+        t_id = theme_settings.get("theme_id", "midnight_gamer")
+        p_lvl = theme_settings.get("personality_level", "Subtle")
+        from themes import get_contextual_message
+        empty_msg = get_contextual_message("empty_tracker", theme_id=t_id, personality_level=p_lvl) or "No games tracked yet."
+        st.markdown(f'<div class="empty-box"><div class="empty-icon">🎮</div><div class="empty-title">{empty_msg}</div><div class="empty-sub">Use Search Games in the sidebar to find and track titles.</div></div>', unsafe_allow_html=True)
     elif not display_groups:
         st.info("No tracked games match this store filter.")
     else:
@@ -1857,8 +1929,8 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
         st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">4. Visual Theme & Header</div>', unsafe_allow_html=True)
         th_col1, th_col2 = st.columns(2)
         with th_col1:
-            theme_opts = ["Midnight", "Aurora", "Minimal"]
-            curr_theme = prefs.get("theme", "Midnight")
+            theme_opts = ["Use application theme", "Midnight", "Aurora", "Minimal"] + [t["name"] for t in THEMES.values()]
+            curr_theme = prefs.get("theme", "Use application theme")
             theme_idx = theme_opts.index(curr_theme) if curr_theme in theme_opts else 0
             chosen_theme = st.selectbox("Select email visual theme:", theme_opts, index=theme_idx)
         with th_col2:
@@ -1883,6 +1955,8 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
             send_time = st.text_input("Daily Send Time (HH:MM):", value=prefs.get("send_time", "11:05"))
 
         btn_col1, btn_col2, btn_col3 = st.columns(3)
+        app_theme_id = st.session_state.get("theme_settings", {}).get("theme_id", "midnight_gamer")
+
         with btn_col1:
             if st.button("💾 Save Preferences", type="primary", use_container_width=True):
                 new_prefs = {
@@ -1892,6 +1966,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
                     "selected_tags": selected_tags,
                     "enabled_content": updated_enabled,
                     "theme": chosen_theme,
+                    "app_theme_id": app_theme_id,
                     "featured_game_id": featured_game_id,
                     "report_title": report_title.strip(),
                     "send_time": send_time.strip(),
@@ -1907,6 +1982,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
             "selected_tags": selected_tags,
             "enabled_content": updated_enabled,
             "theme": chosen_theme,
+            "app_theme_id": app_theme_id,
             "featured_game_id": featured_game_id,
             "report_title": report_title.strip(),
             "send_time": send_time.strip(),
@@ -1934,6 +2010,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
                                 prefs=current_form_prefs,
                                 smtp_server=smtp_server,
                                 smtp_port=smtp_port,
+                                is_test=True,
                             )
                             if success:
                                 st.success("✅ Test email sent successfully! Check your inbox.")
@@ -1955,8 +2032,77 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
 
 # ── View 8: ⚙️ Settings ──────────────────────────────────────────────
 def render_settings_view(games: list[dict], gh: GitHubManager):
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">⚙️ Settings & Synchronization</div>', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">GitHub persistence and scheduler settings.</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">⚙️ Settings & Customization</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:20px;">Global theme design system, UI personality layer, and GitHub persistence.</div>', unsafe_allow_html=True)
+
+    if "theme_settings" not in st.session_state:
+        st.session_state.theme_settings = load_theme_settings_data(gh)
+
+    theme_settings = st.session_state.theme_settings
+
+    from themes import THEMES, PERSONALITY_LEVELS
+    with st.expander("🎨 Global Theme System & Visual Identity Picker", expanded=True):
+        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:12px;">Visual Theme Identity Presets:</div>', unsafe_allow_html=True)
+        curr_id = theme_settings.get("theme_id", "midnight_gamer")
+
+        theme_items = list(THEMES.items())
+        # Render grid of theme cards in 3 columns
+        cols = st.columns(3)
+        for i, (tid, t) in enumerate(theme_items):
+            col = cols[i % 3]
+            is_active = (tid == curr_id)
+            active_border = t["accent_primary"] if is_active else t["border_color"]
+            active_badge = f'<div style="font-size:11px;font-weight:800;color:{t["accent_primary"]};margin-bottom:4px;">✓ ACTIVE THEME</div>' if is_active else '<div style="font-size:11px;color:#64748b;margin-bottom:4px;">PREVIEW</div>'
+
+            with col:
+                st.markdown(
+                    f'<div style="background:{t["bg_body"]};border:2px solid {active_border};border-radius:{t["card_radius"]};padding:12px;margin-bottom:8px;box-shadow:{t["shadow_card"]};">'
+                    f'{active_badge}'
+                    f'<div style="background:{t["bg_card"]};border:1px solid {t["border_color"]};border-radius:6px;padding:8px;margin-bottom:8px;">'
+                    f'<div style="font-size:12px;font-weight:700;color:{t["text_primary"]};">{t["icon"]} {t["name"]}</div>'
+                    f'<div style="font-size:10px;color:{t["text_muted"]};margin-top:2px;">{t["tracked_label"]}</div>'
+                    f'</div>'
+                    f'<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">'
+                    f'<div style="width:12px;height:12px;border-radius:50%;background:{t["bg_sidebar"]};border:1px solid {t["border_color"]};" title="Sidebar"></div>'
+                    f'<div style="width:12px;height:12px;border-radius:50%;background:{t["bg_card"]};border:1px solid {t["border_color"]};" title="Card Surface"></div>'
+                    f'<div style="width:12px;height:12px;border-radius:50%;background:{t["accent_primary"]};" title="Accent Color"></div>'
+                    f'<div style="width:12px;height:12px;border-radius:50%;background:{t["sale_color"]};" title="Sale Highlight"></div>'
+                    f'</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                if is_active:
+                    st.button("✓ Active", key=f"active_btn_{tid}", disabled=True, use_container_width=True)
+                else:
+                    if st.button(f"Apply {t['name']}", key=f"apply_btn_{tid}", use_container_width=True):
+                        new_theme_settings = dict(theme_settings)
+                        new_theme_settings["theme_id"] = tid
+                        save_theme_settings_data(gh, new_theme_settings)
+                        st.session_state.theme_settings = new_theme_settings
+                        st.success(f"✅ Applied {t['name']} theme!")
+                        st.rerun()
+
+        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:20px 0 8px;">Select UI Personality Level:</div>', unsafe_allow_html=True)
+        curr_p = theme_settings.get("personality_level", "Subtle")
+        p_idx = PERSONALITY_LEVELS.index(curr_p) if curr_p in PERSONALITY_LEVELS else 0
+        chosen_personality = st.radio(
+            "Contextual Personality Level:",
+            PERSONALITY_LEVELS,
+            index=p_idx,
+            help="Subtle: Mostly professional UI with occasional contextual messages.\nPlayful: More contextual messages and reactions.\nChaotic: Humorous gaming-style messages.",
+            key="settings_personality_radio",
+        )
+
+        if chosen_personality != curr_p:
+            if st.button("💾 Save Personality Level", type="primary"):
+                new_theme_settings = dict(theme_settings)
+                new_theme_settings["personality_level"] = chosen_personality
+                save_theme_settings_data(gh, new_theme_settings)
+                st.session_state.theme_settings = new_theme_settings
+                st.success("✅ Personality level saved!")
+                st.rerun()
+
+    st.markdown('<div style="font-size:15px;font-weight:700;color:#f8fafc;margin:24px 0 10px;">GitHub Synchronization</div>', unsafe_allow_html=True)
     st.markdown(
         f'<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:20px;">'
         f'<div style="font-size:15px;font-weight:700;color:#f8fafc;margin-bottom:8px;">GitHub Repository Connection</div>'
@@ -1964,11 +2110,12 @@ def render_settings_view(games: list[dict], gh: GitHubManager):
         f'Owner: <strong>{gh.owner}</strong><br>'
         f'Repository: <strong>{gh.repo}</strong><br>'
         f'Tracked listings file: <strong>games.json</strong><br>'
-        f'Price history file: <strong>history.json</strong>'
+        f'Price history file: <strong>history.json</strong><br>'
+        f'Theme settings file: <strong>theme_settings.json</strong>'
         f'</div>',
         unsafe_allow_html=True,
     )
-    if st.button("Force Synchronize Data", type="primary"):
+    if st.button("Force Synchronize Data", type="secondary"):
         with st.spinner("Syncing data to GitHub..."):
             gh.save_games(games, "chore: manual sync from dashboard")
             st.success("Synchronized successfully!")
@@ -1977,11 +2124,19 @@ def render_settings_view(games: list[dict], gh: GitHubManager):
 
 # ── Main Application Orchestrator ────────────────────────────────────
 def main():
-    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-
     gh = init_github()
     if gh is None:
         return
+
+    if "theme_settings" not in st.session_state:
+        st.session_state.theme_settings = load_theme_settings_data(gh)
+
+    theme_settings = st.session_state.theme_settings
+    active_theme_id = theme_settings.get("theme_id", "midnight_gamer")
+
+    from themes import generate_theme_css, get_theme, get_contextual_message
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    st.markdown(generate_theme_css(active_theme_id), unsafe_allow_html=True)
 
     if "scheduler_started" not in st.session_state:
         st.session_state.scheduler_started = True
@@ -2038,11 +2193,15 @@ def main():
             key="main_sidebar_nav_choice",
         )
 
+        active_t = get_theme(active_theme_id)
         st.markdown(
             f'<div class="sidebar-status-card">'
-            f'<div style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;">Status</div>'
-            f'<div style="font-size:13px;color:#f8fafc;margin-top:4px;">{unique_games} games ({on_sale_count} on sale)</div>'
-            f'<div style="font-size:11px;color:#64748b;margin-top:2px;">Last synced: {last_sync}</div>'
+            f'<div style="font-size:11px;color:var(--theme-text-secondary,#64748b);text-transform:uppercase;font-weight:700;">Status</div>'
+            f'<div style="font-size:13px;color:var(--theme-text-primary,#f8fafc);margin-top:4px;">{unique_games} games ({on_sale_count} on sale)</div>'
+            f'<div style="font-size:11px;color:var(--theme-text-secondary,#64748b);margin-top:2px;">Last synced: {last_sync}</div>'
+            f'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--theme-border-color,#1f293d);font-size:11px;color:var(--theme-accent,#6366f1);font-weight:700;">'
+            f'{active_t["icon"]} {active_t["name"]} ({theme_settings.get("personality_level", "Subtle")})'
+            f'</div>'
             f'</div>',
             unsafe_allow_html=True,
         )

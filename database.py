@@ -908,3 +908,33 @@ def dump_email_preferences(prefs: dict[str, Any]) -> str:
     return json.dumps(prefs, indent=2, ensure_ascii=False)
 
 
+# ── Theme & Personality Settings Persistence ──────────────────────────
+
+THEME_SETTINGS_FILE = "theme_settings.json"
+
+DEFAULT_THEME_SETTINGS: dict[str, Any] = {
+    "theme_id": "midnight_gamer",
+    "personality_level": "Subtle",
+}
+
+
+def load_theme_settings(content: str) -> dict[str, Any]:
+    if not content or not content.strip():
+        return deepcopy(DEFAULT_THEME_SETTINGS)
+    try:
+        data = json.loads(content)
+        if isinstance(data, dict):
+            merged = deepcopy(DEFAULT_THEME_SETTINGS)
+            merged.update(data)
+            return merged
+        return deepcopy(DEFAULT_THEME_SETTINGS)
+    except Exception as e:
+        logger.error("Failed to parse theme_settings.json: %s", e)
+        return deepcopy(DEFAULT_THEME_SETTINGS)
+
+
+def dump_theme_settings(settings: dict[str, Any]) -> str:
+    return json.dumps(settings, indent=2, ensure_ascii=False)
+
+
+

@@ -94,6 +94,10 @@ class GitHubManager:
         from database import dump_email_preferences
         return self.save_file("email_preferences.json", dump_email_preferences(prefs), message)
 
+    def save_theme_settings(self, settings: dict, message: str = "Update theme_settings.json") -> dict:
+        from database import dump_theme_settings
+        return self.save_file("theme_settings.json", dump_theme_settings(settings), message)
+
     def test_connection(self) -> bool:
         try:
             resp = requests.get(self._base_url, headers=self._headers, timeout=20)

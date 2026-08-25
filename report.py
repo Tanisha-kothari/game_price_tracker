@@ -598,7 +598,25 @@ def build_daily_report(games: list[dict], history: dict, prefs: Optional[dict] =
     report_title = merged_prefs.get("report_title") or "🎮 Daily Game Drop"
 
     # Theme Styling Tokens
-    if theme_name == "Minimal":
+    from themes import THEMES, get_theme
+    app_theme_id = merged_prefs.get("app_theme_id")
+
+    if (theme_name == "Use application theme" or theme_name in THEMES) and (app_theme_id or theme_name in THEMES):
+        target_id = app_theme_id if theme_name == "Use application theme" else theme_name
+        t = get_theme(target_id)
+        bg_body = "#0d121f" if "Midnight" in t["name"] else t.get("bg_container", "#0d121f")
+        bg_container = t.get("bg_sidebar", "#090d16")
+        bg_card = t.get("bg_container", "#121827")
+        border_col = t.get("border_color", "#1f293d")
+        text_title = t.get("text_primary", "#f8fafc")
+        text_body = t.get("text_primary", "#cbd5e1")
+        text_muted = t.get("text_secondary", "#94a3b8")
+        accent_col = t.get("accent_color", "#6366f1")
+        sale_green = t.get("sale_color", "#4ade80")
+        sale_bg = t.get("sale_bg", "rgba(74, 222, 128, 0.12)")
+        btn_bg = t.get("btn_primary_bg", "#4f46e5")
+        btn_text = t.get("btn_primary_text", "#ffffff")
+    elif theme_name == "Minimal":
         bg_body = "#ffffff"
         bg_container = "#f8fafc"
         bg_card = "#ffffff"
