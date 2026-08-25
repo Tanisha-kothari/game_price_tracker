@@ -1,0 +1,20 @@
+{
+  "recipient_email": "",
+  "games_selection_mode": "all",
+  "selected_game_ids": [],
+  "selected_tags": [],
+  "enabled_content": {
+    "current_price": true,
+    "original_price": true,
+    "discount_percent": true,
+    "lowest_price": true,
+    "price_change": true,
+    "store_comparison": true,
+    "new_sales": true,
+    "lowest_price_alerts": true
+  },
+  "theme": "Aurora",
+  "featured_game_id": "dayz",
+  "report_title": "🎮 Daily Game Drop",
+  "send_time": "11:05"
+}
