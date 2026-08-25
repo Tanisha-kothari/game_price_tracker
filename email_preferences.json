@@ -1,19 +1,22 @@
 {
   "recipient_email": "",
-  "games_selection_mode": "all",
-  "selected_game_ids": [],
+  "games_selection_mode": "selected",
+  "selected_game_ids": [
+    "dayz",
+    "the-elder-scrolls-v-skyrim"
+  ],
   "selected_tags": [],
   "enabled_content": {
     "current_price": true,
     "original_price": true,
-    "discount_percent": true,
-    "lowest_price": true,
-    "price_change": true,
-    "store_comparison": true,
-    "new_sales": true,
-    "lowest_price_alerts": true
+    "discount_percent": false,
+    "lowest_price": false,
+    "price_change": false,
+    "store_comparison": false,
+    "new_sales": false,
+    "lowest_price_alerts": false
   },
-  "theme": "Aurora",
+  "theme": "Minimal",
   "featured_game_id": "dayz",
   "report_title": "🎮 Daily Game Drop",
   "send_time": "11:05"
