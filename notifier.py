@@ -181,72 +181,70 @@ def send_email(
     to_address: str,
     subject: str,
     html_body: str,
+    is_test: bool = False,
 ) -> bool:
+    prefix = "[TEST EMAIL] " if is_test else ""
     # ── Pre-send validation ──────────────────────────────────
     html_size = len(html_body)
     logger.info(
-        "Pre-send: subject=%s | html=%d bytes",
-        subject[:80].replace("\n", " "), html_size,
+        "%sPre-send: subject=%s | html=%d bytes",
+        prefix, subject[:80].replace("\n", " "), html_size,
     )
 
     for label, field in [("subject", subject), ("html_body", html_body)]:
         if not _validate_unicode(label, field):
+            logger.error("%sFAILED: UnicodeValidationError: %s failed unicode validation", prefix, label)
             return False
-    logger.info("Unicode validation: passed")
 
     # ── MIME construction ────────────────────────────────────
     try:
         msg = MIMEMultipart("alternative")
         msg["From"] = email_address
         msg["To"] = to_address
-        # Header() wraps non-ASCII (emoji, ₹, —) in MIME
-        # encoded-words (=?utf-8?B?...?=) that are ASCII-safe.
         msg["Subject"] = Header(subject, "utf-8")
-        # Explicit charset="utf-8" selects base64/qp transfer
-        # encoding so the HTML payload is never us-ascii.
         msg.attach(MIMEText(html_body, "html", "utf-8"))
+        logger.info("%sMIME message created", prefix)
     except Exception as e:
-        logger.error("Email construction failed: %s", e)
-        return False
-    logger.info("MIME construction: succeeded")
+        ex_type = type(e).__name__
+        err_msg = str(e)
+        logger.error("%sFAILED: %s: MIME construction failed: %s", prefix, ex_type, err_msg)
+        raise e
 
     # ── SMTP send ────────────────────────────────────────────
     try:
+        logger.info("%sConnecting to SMTP server %s:%s", prefix, smtp_server, smtp_port)
         with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+            logger.info("%sTLS started", prefix)
             server.starttls()
+            logger.info("%sAuthenticating", prefix)
             server.login(email_address, email_password)
+            logger.info("%sAuthentication succeeded", prefix)
+            logger.info("%sSending message", prefix)
             server.send_message(msg)
+            logger.info("%sSMTP send succeeded", prefix)
+            return True
     except smtplib.SMTPAuthenticationError as e:
-        logger.error(
-            "SMTP authentication failed: check EMAIL_ADDRESS and EMAIL_PASSWORD secrets"
-        )
+        logger.error("%sFAILED: SMTPAuthenticationError: check EMAIL_ADDRESS and EMAIL_PASSWORD secrets", prefix)
         raise e
-    except smtplib.SMTPConnectError:
-        logger.error(
-            "SMTP connection failed: could not connect to %s:%s",
-            smtp_server,
-            smtp_port,
-        )
-        return False
-    except smtplib.SMTPRecipientsRefused:
-        logger.error(
-            "Message sending failed: all recipients refused (check EMAIL_TO)"
-        )
-        return False
+    except smtplib.SMTPConnectError as e:
+        logger.error("%sFAILED: SMTPConnectError: could not connect to %s:%s", prefix, smtp_server, smtp_port)
+        raise e
+    except smtplib.SMTPRecipientsRefused as e:
+        logger.error("%sFAILED: SMTPRecipientsRefused: all recipients refused", prefix)
+        raise e
     except smtplib.SMTPException as e:
-        logger.error("Message sending failed: %s", e)
-        return False
-    except TimeoutError:
-        logger.error(
-            "SMTP connection timed out: %s:%s", smtp_server, smtp_port
-        )
-        return False
+        ex_type = type(e).__name__
+        err_msg = str(e)
+        logger.error("%sFAILED: %s: %s", prefix, ex_type, err_msg)
+        raise e
+    except TimeoutError as e:
+        logger.error("%sFAILED: TimeoutError: SMTP connection timed out (%s:%s)", prefix, smtp_server, smtp_port)
+        raise e
     except Exception as e:
-        logger.error("Email error: %s", e)
-        return False
-
-    logger.info("SMTP send: succeeded")
-    return True
+        ex_type = type(e).__name__
+        err_msg = str(e)
+        logger.error("%sFAILED: %s: %s", prefix, ex_type, err_msg)
+        raise e
 
 
 def send_price_alert(
@@ -396,12 +394,18 @@ def send_daily_report(
     prefs: Optional[dict] = None,
     smtp_server: str = "smtp.gmail.com",
     smtp_port: int = 587,
+    is_test: bool = False,
 ) -> bool:
     from report import build_daily_report
+    prefix = "[TEST EMAIL] " if is_test else ""
+    if is_test:
+        logger.info("%sBuilding HTML daily report with preferences", prefix)
     title = (prefs.get("report_title") if prefs else None) or "🎮 Daily Game Drop"
     subject = f"{title} — {today_str()}"
     html = build_daily_report(games, history, prefs=prefs)
+    if is_test:
+        logger.info("%sHTML generated (%d bytes)", prefix, len(html))
     return send_email(
         smtp_server, smtp_port, email_address, email_password,
-        to_address, subject, html,
+        to_address, subject, html, is_test=is_test,
     )
