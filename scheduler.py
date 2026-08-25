@@ -21,9 +21,14 @@ def _parse_time(send_time: str) -> tuple[int, int]:
 def _get_job(scheduler, gh, email_config, **kwargs):
     def job():
         try:
-            logger.info("Daily report job: fetching games and history from GitHub")
+            logger.info("Daily report job: fetching games, history, and preferences from GitHub")
             games_raw = gh.get_file_content("games.json")
             history_raw = gh.get_file_content("history.json")
+            prefs_raw = gh.get_file_content("email_preferences.json")
+
+            from database import load_email_preferences
+            prefs = load_email_preferences(prefs_raw) if prefs_raw else None
+
             games = load_games(games_raw) if games_raw else []
             history = load_history(history_raw) if history_raw else {}
             games, _ = migrate_games(games)
@@ -31,13 +36,17 @@ def _get_job(scheduler, gh, email_config, **kwargs):
             if not games:
                 logger.info("Daily report job: no tracked games, skipping report")
                 return
-            logger.info("Daily report job: sending report for %d games", len(games))
+
+            recipient = (prefs.get("recipient_email") if prefs and prefs.get("recipient_email") else None) or email_config.get("to_address", email_config["address"])
+
+            logger.info("Daily report job: sending report for %d games to %s", len(games), recipient)
             send_daily_report(
                 email_config["address"],
                 email_config["password"],
-                email_config.get("to_address", email_config["address"]),
+                recipient,
                 games,
                 history,
+                prefs=prefs,
                 smtp_server=email_config.get("smtp_server", "smtp.gmail.com"),
                 smtp_port=email_config.get("smtp_port", 587),
             )

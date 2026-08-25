@@ -635,6 +635,39 @@ def save_saved_combos_data(gh: GitHubManager, combos: list[dict]):
         logger.error("GitHub saved_combinations.json sync error: %s", e)
 
 
+def load_email_prefs_data(gh: GitHubManager) -> dict:
+    from database import load_email_preferences
+    try:
+        content = gh.get_file_content("email_preferences.json")
+        if content:
+            return load_email_preferences(content)
+    except Exception as e:
+        logger.info("GitHub email_preferences fetch notice: %s", e)
+
+    if os.path.exists("email_preferences.json"):
+        try:
+            with open("email_preferences.json", "r", encoding="utf-8") as f:
+                return load_email_preferences(f.read())
+        except Exception as e:
+            logger.error("Local email_preferences.json read error: %s", e)
+    return load_email_preferences("")
+
+
+def save_email_prefs_data(gh: GitHubManager, prefs: dict):
+    from database import dump_email_preferences
+    content = dump_email_preferences(prefs)
+    try:
+        with open("email_preferences.json", "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        logger.error("Local email_preferences.json write error: %s", e)
+
+    try:
+        gh.save_email_preferences(prefs, "Update email_preferences.json")
+    except Exception as e:
+        logger.error("GitHub email_preferences.json sync error: %s", e)
+
+
 def get_last_sync(games: list[dict]) -> str:
     if not games:
         return "—"
@@ -1672,12 +1705,175 @@ def render_deals_view(games: list[dict], history: dict, gh: GitHubManager):
         render_game_card(listings, gh, games, history)
 
 
-# ── View 7: 📧 Reports ────────────────────────────────────────────────
-def render_reports_view(games: list[dict], history: dict):
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">📧 Daily Price Reports</div>', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Daily email report summary and preview.</div>', unsafe_allow_html=True)
-    report_html = build_daily_report(games, history)
-    st.components.v1.html(report_html, height=650, scrolling=True)
+# ── View 7: 📧 Reports & Email Preferences ────────────────────────────
+def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
+    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">📧 Daily Price Email & Preferences</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:20px;">Customize your daily email content, theme, filters, and scheduled report preferences.</div>', unsafe_allow_html=True)
+
+    if "email_prefs" not in st.session_state:
+        st.session_state.email_prefs = load_email_prefs_data(gh)
+
+    prefs = st.session_state.email_prefs
+
+    with st.expander("⚙️ Email Configuration & Content Preferences", expanded=True):
+        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:12px;">1. Email Recipient</div>', unsafe_allow_html=True)
+        recipient = st.text_input(
+            "Recipient Email Address:",
+            value=prefs.get("recipient_email", ""),
+            placeholder="e.g. user@example.com",
+            help="Leave blank to use default configured EMAIL_ADDRESS environment secret.",
+        )
+
+        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">2. Games to Include</div>', unsafe_allow_html=True)
+        mode_opts = ["All tracked games", "Selected games", "Games with selected tags"]
+        curr_mode = prefs.get("games_selection_mode", "all")
+        mode_idx = 0
+        if curr_mode == "selected":
+            mode_idx = 1
+        elif curr_mode == "tags":
+            mode_idx = 2
+
+        selected_mode_label = st.radio("Choose game filter mode:", mode_opts, index=mode_idx)
+        games_selection_mode = "all"
+        if selected_mode_label == "Selected games":
+            games_selection_mode = "selected"
+        elif selected_mode_label == "Games with selected tags":
+            games_selection_mode = "tags"
+
+        unique_games_dict = group_games_by_identity(games)
+        game_title_map = {}
+        for gid, listings in unique_games_dict.items():
+            title = listings[0].get("name", "Unknown Game")
+            game_title_map[title] = gid
+
+        selected_game_ids = prefs.get("selected_game_ids", [])
+        if games_selection_mode == "selected":
+            default_titles = [t for t, gid in game_title_map.items() if gid in selected_game_ids or any(l["id"] in selected_game_ids for l in unique_games_dict[gid])]
+            chosen_titles = st.multiselect("Select games to include in daily email:", options=list(game_title_map.keys()), default=default_titles)
+            selected_game_ids = [game_title_map[t] for t in chosen_titles if t in game_title_map]
+
+        store_tags, custom_tags = get_all_unique_tags(games)
+        all_tags = sorted(list(set(store_tags + custom_tags)))
+        selected_tags = prefs.get("selected_tags", [])
+        if games_selection_mode == "tags":
+            selected_tags = st.multiselect("Select tags to include in daily email:", options=all_tags, default=[t for t in selected_tags if t in all_tags])
+
+        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">3. Email Content Options</div>', unsafe_allow_html=True)
+        enabled = prefs.get("enabled_content", {})
+        c1, c2 = st.columns(2)
+        with c1:
+            chk_curr_price = st.checkbox("Current price", value=enabled.get("current_price", True))
+            chk_orig_price = st.checkbox("Original price", value=enabled.get("original_price", True))
+            chk_discount = st.checkbox("Discount percentage", value=enabled.get("discount_percent", True))
+            chk_lowest = st.checkbox("Lowest recorded price", value=enabled.get("lowest_price", True))
+        with c2:
+            chk_price_change = st.checkbox("Price change since previous check", value=enabled.get("price_change", True))
+            chk_store_comp = st.checkbox("Steam vs Epic comparison", value=enabled.get("store_comparison", True))
+            chk_new_sales = st.checkbox("New sales section", value=enabled.get("new_sales", True))
+            chk_lowest_alerts = st.checkbox("Lowest-price alerts section", value=enabled.get("lowest_price_alerts", True))
+
+        updated_enabled = {
+            "current_price": chk_curr_price,
+            "original_price": chk_orig_price,
+            "discount_percent": chk_discount,
+            "lowest_price": chk_lowest,
+            "price_change": chk_price_change,
+            "store_comparison": chk_store_comp,
+            "new_sales": chk_new_sales,
+            "lowest_price_alerts": chk_lowest_alerts,
+        }
+
+        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">4. Visual Theme & Header</div>', unsafe_allow_html=True)
+        th_col1, th_col2 = st.columns(2)
+        with th_col1:
+            theme_opts = ["Midnight", "Aurora", "Minimal"]
+            curr_theme = prefs.get("theme", "Midnight")
+            theme_idx = theme_opts.index(curr_theme) if curr_theme in theme_opts else 0
+            chosen_theme = st.selectbox("Select email visual theme:", theme_opts, index=theme_idx)
+        with th_col2:
+            report_title = st.text_input("Report Title:", value=prefs.get("report_title", "🎮 Daily Game Drop"))
+
+        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">5. Featured Game & Schedule</div>', unsafe_allow_html=True)
+        feat_col1, feat_col2 = st.columns(2)
+        with feat_col1:
+            feat_opts = ["None"] + list(game_title_map.keys())
+            curr_feat_id = prefs.get("featured_game_id")
+            curr_feat_title = "None"
+            if curr_feat_id:
+                for t, gid in game_title_map.items():
+                    if gid == curr_feat_id or any(l["id"] == curr_feat_id for l in unique_games_dict[gid]):
+                        curr_feat_title = t
+                        break
+            feat_idx = feat_opts.index(curr_feat_title) if curr_feat_title in feat_opts else 0
+            chosen_feat = st.selectbox("⭐ Select Featured Game (Hero Card):", feat_opts, index=feat_idx)
+            featured_game_id = game_title_map.get(chosen_feat) if chosen_feat != "None" else None
+
+        with feat_col2:
+            send_time = st.text_input("Daily Send Time (HH:MM):", value=prefs.get("send_time", "11:05"))
+
+        btn_col1, btn_col2, btn_col3 = st.columns(3)
+        with btn_col1:
+            if st.button("💾 Save Preferences", type="primary", use_container_width=True):
+                new_prefs = {
+                    "recipient_email": recipient.strip(),
+                    "games_selection_mode": games_selection_mode,
+                    "selected_game_ids": selected_game_ids,
+                    "selected_tags": selected_tags,
+                    "enabled_content": updated_enabled,
+                    "theme": chosen_theme,
+                    "featured_game_id": featured_game_id,
+                    "report_title": report_title.strip(),
+                    "send_time": send_time.strip(),
+                }
+                save_email_prefs_data(gh, new_prefs)
+                st.session_state.email_prefs = new_prefs
+                st.success("✅ Email preferences saved successfully!")
+
+        current_form_prefs = {
+            "recipient_email": recipient.strip(),
+            "games_selection_mode": games_selection_mode,
+            "selected_game_ids": selected_game_ids,
+            "selected_tags": selected_tags,
+            "enabled_content": updated_enabled,
+            "theme": chosen_theme,
+            "featured_game_id": featured_game_id,
+            "report_title": report_title.strip(),
+            "send_time": send_time.strip(),
+        }
+
+        with btn_col2:
+            if st.button("✉️ Send Test Email", type="secondary", use_container_width=True):
+                email_addr = os.environ.get("EMAIL_ADDRESS") or st.secrets.get("EMAIL_ADDRESS", "")
+                email_pwd = os.environ.get("EMAIL_PASSWORD") or st.secrets.get("EMAIL_PASSWORD", "")
+                to_addr = recipient.strip() or os.environ.get("EMAIL_TO") or st.secrets.get("EMAIL_TO", email_addr)
+                smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
+                smtp_port = int(os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT", "587"))
+
+                if not email_addr or not email_pwd:
+                    st.error("❌ Test email could not be sent. Missing EMAIL_ADDRESS or EMAIL_PASSWORD secrets.")
+                else:
+                    with st.spinner("Sending test email using current preferences..."):
+                        try:
+                            from notifier import send_daily_report
+                            success = send_daily_report(
+                                email_addr, email_pwd, to_addr, games, history,
+                                prefs=current_form_prefs,
+                                smtp_server=smtp_server, smtp_port=smtp_port,
+                            )
+                            if success:
+                                st.success(f"✅ Test email sent successfully! Check inbox: {to_addr}")
+                            else:
+                                st.error("❌ Test email could not be sent. Check SMTP credentials and connection.")
+                        except Exception as e:
+                            logger.error("Test email error: %s", e)
+                            st.error("❌ Test email failed: Could not connect to mail server.")
+
+        with btn_col3:
+            show_preview = st.button("👀 Preview Email", type="secondary", use_container_width=True)
+
+    st.markdown('<div style="font-size:16px;font-weight:700;color:#f8fafc;margin:24px 0 12px;">Live Email Preview</div>', unsafe_allow_html=True)
+    report_html = build_daily_report(games, history, prefs=current_form_prefs)
+    st.components.v1.html(report_html, height=750, scrolling=True)
 
 
 # ── View 8: ⚙️ Settings ──────────────────────────────────────────────
@@ -1804,7 +2000,7 @@ def main():
     elif nav_choice == "🔥 Deals":
         render_deals_view(games, history, gh)
     elif nav_choice == "📧 Reports":
-        render_reports_view(games, history)
+        render_reports_view(games, history, gh)
     elif nav_choice == "⚙️ Settings":
         render_settings_view(games, gh)
     st.markdown('</div>', unsafe_allow_html=True)

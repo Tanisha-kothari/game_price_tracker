@@ -576,28 +576,237 @@ def _insights_section(games: list[dict], history: dict) -> str:
 </table>"""
 
 
-def build_daily_report(games: list[dict], history: dict) -> str:
-    sections = [
-        _build_section("Dashboard Summary", "📊", _dashboard_section(games, history)),
-        DIVIDER,
-        _build_section("Best Cross-Store Deals", "🔥", _cross_store_deals_section(games)),
-        DIVIDER,
-        _build_section("New Sales Today", "🔥", _new_sales_today_section(games)),
-        DIVIDER,
-        _build_section("Tracked Games", "📋", _tracked_games_section(games)),
-        DIVIDER,
-        _build_section("Price Changes", "📈", _price_changes_section(games, history)),
-        DIVIDER,
-        _build_section("New Lowest Prices", "🏆", _new_lows_section(games, history)),
-        DIVIDER,
-        _build_section("Games Currently On Sale", "🔥", _sales_section(games, history)),
-        DIVIDER,
-        _build_section("Buy Recommendations", "🔥", _buy_recs_section(games, history)),
-        DIVIDER,
-        _build_section("Wish List Progress", "🎯", _wishlist_section(games)),
-        DIVIDER,
-        _build_section("Historical Insights", "📊", _insights_section(games, history)),
-    ]
+def build_daily_report(games: list[dict], history: dict, prefs: Optional[dict] = None) -> str:
+    from database import DEFAULT_EMAIL_PREFERENCES, normalize_game
+    from datetime import datetime
 
-    body = "\n".join(sections)
-    return BASE_HTML.format(date=today_str(), body=body)
+    if prefs is None:
+        prefs = DEFAULT_EMAIL_PREFERENCES
+
+    merged_prefs = dict(DEFAULT_EMAIL_PREFERENCES)
+    merged_prefs.update(prefs)
+    if "enabled_content" in prefs and isinstance(prefs["enabled_content"], dict):
+        merged_prefs["enabled_content"] = dict(DEFAULT_EMAIL_PREFERENCES["enabled_content"])
+        merged_prefs["enabled_content"].update(prefs["enabled_content"])
+
+    enabled = merged_prefs["enabled_content"]
+    theme_name = merged_prefs.get("theme", "Midnight")
+    mode = merged_prefs.get("games_selection_mode", "all")
+    selected_ids = set(merged_prefs.get("selected_game_ids", []))
+    selected_tags = set(t.lower() for t in merged_prefs.get("selected_tags", []))
+    featured_id = merged_prefs.get("featured_game_id")
+    report_title = merged_prefs.get("report_title") or "🎮 Daily Game Drop"
+
+    # Theme Styling Tokens
+    if theme_name == "Minimal":
+        bg_body = "#ffffff"
+        bg_container = "#f8fafc"
+        bg_card = "#ffffff"
+        border_col = "#e2e8f0"
+        text_title = "#0f172a"
+        text_body = "#334155"
+        text_muted = "#64748b"
+        accent_col = "#2563eb"
+        sale_green = "#16a34a"
+        sale_bg = "#f0fdf4"
+        btn_bg = "#2563eb"
+        btn_text = "#ffffff"
+    elif theme_name == "Aurora":
+        bg_body = "#090d16"
+        bg_container = "#131b2e"
+        bg_card = "#1a253d"
+        border_col = "rgba(139, 92, 246, 0.25)"
+        text_title = "#f8fafc"
+        text_body = "#cbd5e1"
+        text_muted = "#94a3b8"
+        accent_col = "#8b5cf6"
+        sale_green = "#22c55e"
+        sale_bg = "rgba(34, 197, 94, 0.15)"
+        btn_bg = "#7c3aed"
+        btn_text = "#ffffff"
+    else:  # Midnight (Default)
+        bg_body = "#0d121f"
+        bg_container = "#121827"
+        bg_card = "#1a2238"
+        border_col = "#1f293d"
+        text_title = "#f8fafc"
+        text_body = "#cbd5e1"
+        text_muted = "#94a3b8"
+        accent_col = "#6366f1"
+        sale_green = "#4ade80"
+        sale_bg = "rgba(74, 222, 128, 0.12)"
+        btn_bg = "#4f46e5"
+        btn_text = "#ffffff"
+
+    # Filter Games
+    if mode == "selected" and selected_ids:
+        report_games = [g for g in games if g.get("id") in selected_ids or g.get("game_id") in selected_ids]
+    elif mode == "tags" and selected_tags:
+        report_games = []
+        for g in games:
+            normalize_game(g)
+            g_tags = set(t.lower() for t in g.get("store_tags", []) + g.get("custom_tags", []))
+            if g_tags.intersection(selected_tags):
+                report_games.append(g)
+    else:
+        report_games = list(games)
+
+    date_str = datetime.now().strftime("%A, %B %d, %Y")
+
+    def _render_game_email_card(g: dict, is_hero: bool = False) -> str:
+        name = g.get("name", "Unknown Game")
+        store = g.get("store", "store")
+        store_badge = _store_badge(store)
+        cover = g.get("cover_image", "")
+        url = g.get("url", "")
+        curr_price = g.get("current_price")
+        currency = g.get("current_currency", "INR")
+        orig_price = g.get("original_price")
+        disc = g.get("discount_percent") or 0
+        is_sale = bool(g.get("is_on_sale")) or disc > 0
+        lowest = g.get("lowest_price")
+        lowest_curr = g.get("lowest_currency", currency)
+
+        # Image or fallback title block
+        if cover:
+            img_html = f'<img src="{cover}" alt="{name}" style="width:100%;max-width:100%;height:auto;border-radius:8px;display:block;margin-bottom:12px;" />'
+        else:
+            img_html = f'<div style="background:{border_col};padding:16px;border-radius:8px;text-align:center;font-weight:700;color:{text_title};margin-bottom:12px;">🎮 {name}</div>'
+
+        # Price Fields
+        price_row = ""
+        if enabled.get("current_price", True) and curr_price is not None:
+            p_str = format_price(curr_price, currency)
+            orig_str = f' <span style="text-decoration:line-through;color:{text_muted};font-size:13px;margin-left:6px;">{format_price(orig_price, currency)}</span>' if (enabled.get("original_price", True) and is_sale and orig_price and orig_price > curr_price) else ""
+            disc_badge = f' <span style="background:{sale_bg};color:{sale_green};border:1px solid {sale_green};font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;">-{disc}% 🔥</span>' if (enabled.get("discount_percent", True) and is_sale and disc > 0) else ""
+            price_row = f'<div style="font-size:18px;font-weight:800;color:{"#22c55e" if is_sale else text_title};margin-top:6px;">{p_str}{orig_str}{disc_badge}</div>'
+
+        # Lowest Price
+        lowest_row = ""
+        if enabled.get("lowest_price", True) and lowest is not None:
+            lowest_row = f'<div style="font-size:12px;color:{text_muted};margin-top:4px;">Lowest recorded: <strong style="color:{text_title};">{format_price(lowest, lowest_curr)}</strong></div>'
+
+        # Price Change
+        change_row = ""
+        if enabled.get("price_change", True):
+            diff = detect_price_change(history, g["id"], curr_price, currency)
+            if diff is not None and abs(diff) > 0.01:
+                diff_str = format_price(abs(diff), currency)
+                change_color = sale_green if diff < 0 else "#ef4444"
+                direction = "▼ Down by" if diff < 0 else "▲ Up by"
+                change_row = f'<div style="font-size:12px;color:{change_color};font-weight:600;margin-top:4px;">{direction} {diff_str}</div>'
+
+        # Tags
+        normalize_game(g)
+        tags_list = g.get("store_tags", []) + g.get("custom_tags", [])
+        tags_html = ""
+        if tags_list:
+            tag_pills = "".join(f'<span style="display:inline-block;background:{border_col};color:{text_muted};font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;margin-right:4px;margin-top:4px;">{t}</span>' for t in tags_list[:4])
+            tags_html = f'<div style="margin-top:6px;">{tag_pills}</div>'
+
+        # CTA Button
+        cta_button = ""
+        if url:
+            cta_button = f'<div style="margin-top:14px;text-align:right;"><a href="{url}" style="display:inline-block;background:{btn_bg};color:{btn_text};text-decoration:none;font-size:12px;font-weight:700;padding:8px 16px;border-radius:6px;">VIEW GAME &rarr;</a></div>'
+
+        padding = "20px" if is_hero else "16px"
+        margin = "20px" if is_hero else "12px"
+        return f"""<div style="background:{bg_card};border:1px solid {border_col};border-radius:10px;padding:{padding};margin-bottom:{margin};">
+{img_html}
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<span style="font-size:16px;font-weight:800;color:{text_title};">{name}</span>
+{store_badge}
+</div>
+{tags_html}
+{price_row}
+{lowest_row}
+{change_row}
+{cta_button}
+</div>"""
+
+    # Section 1: ⭐ Featured Game
+    featured_html = ""
+    if featured_id:
+        fg = next((g for g in games if g.get("id") == featured_id or g.get("game_id") == featured_id), None)
+        if fg:
+            featured_html = f"""<tr><td style="padding-bottom:20px;">
+<div style="color:{accent_col};font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">⭐ TODAY'S FEATURED GAME</div>
+{_render_game_email_card(fg, is_hero=True)}
+</td></tr>"""
+
+    # Section 2: 🔥 NEW DEALS
+    new_deals_html = ""
+    if enabled.get("new_sales", True):
+        deals = [g for g in report_games if g.get("is_on_sale") or (g.get("discount_percent") or 0) > 0]
+        if deals:
+            cards = "".join(_render_game_email_card(g) for g in deals[:5])
+            new_deals_html = f"""<tr><td style="padding-bottom:20px;">
+<h2 style="color:{text_title};font-size:16px;font-weight:700;margin:0 0 12px 0;">🔥 NEW DEALS ({len(deals)})</h2>
+{cards}
+</td></tr>"""
+
+    # Section 3: 🏆 LOWEST PRICES
+    lowest_prices_html = ""
+    if enabled.get("lowest_price_alerts", True):
+        lows = [g for g in report_games if g.get("current_price") is not None and g.get("current_price") == g.get("lowest_price")]
+        if lows:
+            cards = "".join(_render_game_email_card(g) for g in lows[:5])
+            lowest_prices_html = f"""<tr><td style="padding-bottom:20px;">
+<h2 style="color:{text_title};font-size:16px;font-weight:700;margin:0 0 12px 0;">🏆 LOWEST PRICES ({len(lows)})</h2>
+{cards}
+</td></tr>"""
+
+    # Section 4: ⚖️ STEAM VS EPIC COMPARISON
+    comparison_html = ""
+    if enabled.get("store_comparison", True):
+        comp_content = _cross_store_deals_section(report_games)
+        if "No games tracked" not in comp_content:
+            comparison_html = f"""<tr><td style="padding-bottom:20px;">
+<h2 style="color:{text_title};font-size:16px;font-weight:700;margin:0 0 12px 0;">⚖️ STEAM VS EPIC COMPARISON</h2>
+<div style="background:{bg_card};border:1px solid {border_col};border-radius:10px;padding:16px;color:{text_body};">
+{comp_content}
+</div>
+</td></tr>"""
+
+    # Section 5: All Filtered Tracked Game Cards
+    games_cards_html = ""
+    if report_games:
+        cards_list = "".join(_render_game_email_card(g) for g in report_games)
+        games_cards_html = f"""<tr><td style="padding-bottom:20px;">
+<h2 style="color:{text_title};font-size:16px;font-weight:700;margin:0 0 12px 0;">📋 TRACKED GAMES ({len(report_games)})</h2>
+{cards_list}
+</td></tr>"""
+    else:
+        games_cards_html = f"""<tr><td style="padding:20px;text-align:center;color:{text_muted};">
+Nothing to report today. No tracked games match your current filter settings.
+</td></tr>"""
+
+    body = f"{featured_html}{new_deals_html}{lowest_prices_html}{comparison_html}{games_cards_html}"
+
+    return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:{bg_body};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:{bg_body};">
+<tr><td align="center" style="padding:20px 12px;">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:{bg_container};border-radius:16px;padding:28px;border:1px solid {border_col};box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+<!-- HEADER -->
+<tr><td style="text-align:center;padding-bottom:20px;border-bottom:1px solid {border_col};margin-bottom:20px;">
+<h1 style="color:{text_title};font-size:24px;margin:0;font-weight:800;letter-spacing:-0.5px;">{report_title}</h1>
+<p style="color:{text_muted};font-size:13px;margin:6px 0 0 0;">{date_str}</p>
+<p style="color:{text_muted};font-size:12px;margin:4px 0 0 0;font-style:italic;">Your tracked games, current deals, and price changes.</p>
+</td></tr>
+<tr><td style="height:20px;"></td></tr>
+{body}
+<!-- FOOTER -->
+<tr><td style="text-align:center;padding-top:20px;border-top:1px solid {border_col};">
+<p style="color:{text_muted};font-size:11px;margin:0 0 4px;letter-spacing:0.5px;">GENERATED BY GAME PRICE TRACKER</p>
+<p style="color:{text_muted};font-size:10px;margin:0 0 8px;">Checked: Steam &middot; Epic Games &middot; GOG</p>
+<p style="color:{text_muted};font-size:10px;margin:0;">See you tomorrow!</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+

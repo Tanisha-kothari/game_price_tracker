@@ -393,13 +393,14 @@ def send_daily_report(
     to_address: str,
     games: list[dict],
     history: dict,
+    prefs: Optional[dict] = None,
     smtp_server: str = "smtp.gmail.com",
     smtp_port: int = 587,
 ) -> bool:
     from report import build_daily_report
-    date = today_str()
-    subject = f"\U0001F3AE Daily Game Price Report \u2014 {date}"
-    html = build_daily_report(games, history)
+    title = (prefs.get("report_title") if prefs else None) or "🎮 Daily Game Drop"
+    subject = f"{title} — {today_str()}"
+    html = build_daily_report(games, history, prefs=prefs)
     return send_email(
         smtp_server, smtp_port, email_address, email_password,
         to_address, subject, html,

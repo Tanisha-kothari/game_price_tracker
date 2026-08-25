@@ -90,6 +90,10 @@ class GitHubManager:
         from database import dump_saved_combinations
         return self.save_file("saved_combinations.json", dump_saved_combinations(combos), message)
 
+    def save_email_preferences(self, prefs: dict, message: str = "Update email_preferences.json") -> dict:
+        from database import dump_email_preferences
+        return self.save_file("email_preferences.json", dump_email_preferences(prefs), message)
+
     def test_connection(self) -> bool:
         try:
             resp = requests.get(self._base_url, headers=self._headers, timeout=20)

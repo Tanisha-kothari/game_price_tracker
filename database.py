@@ -519,8 +519,13 @@ def detect_price_change(
     if len(date_keys) < 2:
         return None
 
-    prev_price = entry[date_keys[-2]]
-    if current_price is None:
+    prev_entry = entry[date_keys[-2]]
+    if isinstance(prev_entry, dict):
+        prev_price = prev_entry.get("price")
+    else:
+        prev_price = prev_entry
+
+    if current_price is None or prev_price is None:
         return None
 
     diff = current_price - prev_price
@@ -853,4 +858,53 @@ def filter_grouped_games_by_tag(
         if has_tag:
             matching_grouped[gid] = listings
     return matching_grouped
+
+
+# ── Email Preferences Persistence & Helper Functions ─────────────────
+
+EMAIL_PREFERENCES_FILE = "email_preferences.json"
+
+DEFAULT_EMAIL_PREFERENCES: dict[str, Any] = {
+    "recipient_email": "",
+    "games_selection_mode": "all",  # "all", "selected", "tags"
+    "selected_game_ids": [],
+    "selected_tags": [],
+    "enabled_content": {
+        "current_price": True,
+        "original_price": True,
+        "discount_percent": True,
+        "lowest_price": True,
+        "price_change": True,
+        "store_comparison": True,
+        "new_sales": True,
+        "lowest_price_alerts": True,
+    },
+    "theme": "Midnight",  # "Midnight", "Aurora", "Minimal"
+    "featured_game_id": None,
+    "report_title": "🎮 Daily Game Drop",
+    "send_time": "11:05",
+}
+
+
+def load_email_preferences(content: str) -> dict[str, Any]:
+    if not content or not content.strip():
+        return deepcopy(DEFAULT_EMAIL_PREFERENCES)
+    try:
+        data = json.loads(content)
+        if isinstance(data, dict):
+            merged = deepcopy(DEFAULT_EMAIL_PREFERENCES)
+            merged.update(data)
+            if "enabled_content" in data and isinstance(data["enabled_content"], dict):
+                merged["enabled_content"] = deepcopy(DEFAULT_EMAIL_PREFERENCES["enabled_content"])
+                merged["enabled_content"].update(data["enabled_content"])
+            return merged
+        return deepcopy(DEFAULT_EMAIL_PREFERENCES)
+    except Exception as e:
+        logger.error("Failed to parse email_preferences.json: %s", e)
+        return deepcopy(DEFAULT_EMAIL_PREFERENCES)
+
+
+def dump_email_preferences(prefs: dict[str, Any]) -> str:
+    return json.dumps(prefs, indent=2, ensure_ascii=False)
+
 
