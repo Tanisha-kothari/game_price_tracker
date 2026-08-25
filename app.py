@@ -1,5 +1,8 @@
 import os
+import time
+import random
 import logging
+from datetime import datetime
 from typing import Optional
 
 import streamlit as st
@@ -16,6 +19,9 @@ from database import (
     get_history_prices, build_game_from_details, build_game_from_search_result,
     get_tracked_store_ids, get_tracked_stores_for_game, group_games_by_identity,
     store_filter_stats, filter_grouped_games,
+    load_saved_combinations, dump_saved_combinations, add_saved_combination,
+    remove_saved_combination, add_custom_tag_to_game, remove_custom_tag_from_game,
+    get_all_unique_tags, filter_grouped_games_by_tag,
 )
 from price_api import fetch_game_details
 from search.engine import search_games, AggregatedGame
@@ -598,6 +604,37 @@ def load_data_from_github(gh: GitHubManager) -> tuple[list[dict], dict, bool]:
     return games, history, migrated
 
 
+def load_saved_combos_data(gh: GitHubManager) -> list[dict]:
+    try:
+        content = gh.get_file_content("saved_combinations.json")
+        if content:
+            return load_saved_combinations(content)
+    except Exception as e:
+        logger.info("GitHub saved_combinations fetch notice: %s", e)
+
+    if os.path.exists("saved_combinations.json"):
+        try:
+            with open("saved_combinations.json", "r", encoding="utf-8") as f:
+                return load_saved_combinations(f.read())
+        except Exception as e:
+            logger.error("Local saved_combinations.json read error: %s", e)
+    return []
+
+
+def save_saved_combos_data(gh: GitHubManager, combos: list[dict]):
+    content = dump_saved_combinations(combos)
+    try:
+        with open("saved_combinations.json", "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        logger.error("Local saved_combinations.json write error: %s", e)
+
+    try:
+        gh.save_saved_combinations(combos, "Update saved_combinations.json")
+    except Exception as e:
+        logger.error("GitHub saved_combinations.json sync error: %s", e)
+
+
 def get_last_sync(games: list[dict]) -> str:
     if not games:
         return "—"
@@ -902,6 +939,21 @@ def render_game_card(
     sparkline = render_sparkline_svg(hist_prices[-10:], width=110, height=22) if len(hist_prices) >= 2 else ""
     sparkline_html = f'<div style="margin:4px 0 8px;">{sparkline}</div>' if sparkline else ""
 
+    # Tag Pills (Store Genres + User Custom Tags)
+    all_store_tags = set()
+    all_custom_tags = set()
+    for g in listings:
+        all_store_tags.update(g.get("store_tags", []))
+        all_custom_tags.update(g.get("custom_tags", []))
+
+    tag_pills_html = ""
+    for st_t in sorted(list(all_store_tags))[:4]:
+        tag_pills_html += f'<span style="display:inline-block;background:#171e2e;border:1px solid #232d42;color:#94a3b8;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;margin-right:4px;margin-top:4px;">{st_t}</span>'
+    for ct_t in sorted(list(all_custom_tags)):
+        tag_pills_html += f'<span style="display:inline-block;background:rgba(79,70,229,0.18);border:1px solid rgba(99,102,241,0.45);color:#a5b4fc;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:4px;margin-top:4px;">🏷️ {ct_t}</span>'
+
+    tags_row_html = f'<div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;">{tag_pills_html}</div>' if tag_pills_html else ""
+
     st.markdown(
         f'<div class="game-card-wrapper{" on-sale" if on_sale_any else ""}">'
         f'<div class="card-layout-flex">'
@@ -911,6 +963,7 @@ def render_game_card(
         f'<span class="card-game-title">{name}</span>'
         f'<div>{stores_badges}</div>'
         f'</div>'
+        f'{tags_row_html}'
         f'{middle_html}'
         f'{sparkline_html}'
         f'</div>'
@@ -996,6 +1049,44 @@ def render_game_card(
                     st.rerun()
                 except Exception:
                     st.error("Failed to remove.")
+
+    # Inline Custom Tags Manager
+    with st.expander("🏷️ Manage Custom Tags", expanded=False):
+        c_tag_col1, c_tag_col2 = st.columns([3, 1])
+        with c_tag_col1:
+            new_tag_val = st.text_input(
+                "Add custom tag",
+                placeholder="Enter tag (e.g. BUY NEXT, MUST BUY, COZY)",
+                key=f"new_tag_input_{primary_game['id']}",
+                label_visibility="collapsed",
+            )
+        with c_tag_col2:
+            if st.button("Add Tag", key=f"add_tag_btn_{primary_game['id']}", use_container_width=True):
+                if new_tag_val.strip():
+                    for g in listings:
+                        add_custom_tag_to_game(games, g["id"], new_tag_val.strip())
+                    gh.save_games(games, f"chore: add tag {new_tag_val.strip()}")
+                    st.session_state.games = games
+                    st.success(f"Added custom tag '{new_tag_val.strip()}'!")
+                    st.rerun()
+
+        current_cts = set()
+        for g in listings:
+            current_cts.update(g.get("custom_tags", []))
+        if current_cts:
+            st.markdown('<div style="font-size:12px;color:#94a3b8;margin-top:8px;font-weight:600;">Assigned Custom Tags:</div>', unsafe_allow_html=True)
+            for ct in sorted(list(current_cts)):
+                rm_c1, rm_c2 = st.columns([3.5, 1])
+                with rm_c1:
+                    st.markdown(f'<div style="font-size:13px;color:#a5b4fc;font-weight:600;padding-top:4px;">🏷️ {ct}</div>', unsafe_allow_html=True)
+                with rm_c2:
+                    if st.button("Remove", key=f"rm_tag_{primary_game['id']}_{ct}", use_container_width=True, type="secondary"):
+                        for g in listings:
+                            remove_custom_tag_from_game(games, g["id"], ct)
+                        gh.save_games(games, f"chore: remove tag {ct}")
+                        st.session_state.games = games
+                        st.success(f"Removed tag '{ct}'!")
+                        st.rerun()
 
 
 def handle_add_game(games: list[dict], game_url: str, target_input: str, gh: GitHubManager):
@@ -1245,7 +1336,26 @@ def render_tracked_games_view(games: list[dict], history: dict, gh: GitHubManage
         return out
 
     filter_map = {"All Games": "All", "Steam": "Steam", "Epic Games": "Epic Games", "Both Stores": "Steam + Epic"}
+    
+    # Collect all unique tags (store genres + user custom tags)
+    store_tags_list, custom_tags_list = get_all_unique_tags(games)
+    all_tags = ["All"] + store_tags_list + [ct for ct in custom_tags_list if ct not in store_tags_list]
+
+    tag_filter_choice = "All"
+    if len(all_tags) > 1:
+        st.markdown('<div style="font-size:12px;color:#94a3b8;margin:10px 0 4px;font-weight:600;">Filter by Tag / Category:</div>', unsafe_allow_html=True)
+        tag_filter_choice = st.radio(
+            "Filter games by tag / category",
+            all_tags,
+            horizontal=True,
+            label_visibility="collapsed",
+            key="tracked_tag_filter_radio",
+        )
+
     filtered_groups = filter_grouped_games(games, filter_map.get(store_list_filter, "All"))
+    if tag_filter_choice != "All":
+        filtered_groups = filter_grouped_games_by_tag(filtered_groups, tag_filter_choice)
+
     display_groups: list[list[dict]] = []
     for gid, listings in filtered_groups.items():
         filtered_listings = _apply_filter_and_sort(listings)
@@ -1317,12 +1427,16 @@ def render_history_view(games: list[dict], history: dict):
 
 
 # ── View 5: 🧮 Smart Calculator (Budget Combination Calculator) ──────
-def render_smart_calculator(games: list[dict]):
+def render_smart_calculator(games: list[dict], gh: GitHubManager):
     priceable = [g for g in games if g.get("current_price") is not None]
     name_to_id = {g["name"]: g["id"] for g in priceable}
 
     st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">🧮 Smart Calculator</div>', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Calculate the optimal combination of tracked games that fits within your budget.</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Calculate, save, and compare optimal combinations of tracked games within your budget.</div>', unsafe_allow_html=True)
+
+    if "saved_combos" not in st.session_state:
+        st.session_state.saved_combos = load_saved_combos_data(gh)
+    saved_combos = st.session_state.saved_combos
 
     if not priceable:
         st.markdown('<div class="empty-box"><div class="empty-icon">🛒</div><div class="empty-title">No priced games available</div><div class="empty-sub">Track games first to calculate your budget combinations.</div></div>', unsafe_allow_html=True)
@@ -1397,35 +1511,151 @@ def render_smart_calculator(games: list[dict]):
         st.error(ss["planner.error"])
 
     result = plan if plan is not None else ss.get("planner.result")
-    if result is None:
-        return
+    if result is not None:
+        items_html = ""
+        for i, g in enumerate(result.games, start=1):
+            p_str = format_price(g.get("current_price"), get_price_currency(g, "current_price"))
+            items_html += (
+                f'<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1a2337;font-size:14px;">'
+                f'<span><strong style="color:#64748b;margin-right:8px;">{i}.</strong> {g["name"]} {render_store_tag(g.get("store", ""))}</span>'
+                f'<span style="font-weight:700;color:#f8fafc;">{p_str}</span>'
+                f'</div>'
+            )
 
-    items_html = ""
-    for i, g in enumerate(result.games, start=1):
-        p_str = format_price(g.get("current_price"), get_price_currency(g, "current_price"))
-        items_html += (
-            f'<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1a2337;font-size:14px;">'
-            f'<span><strong style="color:#64748b;margin-right:8px;">{i}.</strong> {g["name"]} {render_store_tag(g.get("store", ""))}</span>'
-            f'<span style="font-weight:700;color:#f8fafc;">{p_str}</span>'
+        over = result.is_over_budget
+        rem_label = "Over Budget" if over else "Remaining"
+        rem_val = f"+{format_price(result.over_amount, 'INR')}" if over else format_price(result.remaining, "INR")
+
+        st.markdown(
+            f'<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:20px;margin-bottom:20px;">'
+            f'<div style="font-size:16px;font-weight:700;color:#f8fafc;margin-bottom:14px;">Generated Game Combination ({len(result.games)} games)</div>'
+            f'<div class="summary-cards-container">'
+            f'<div class="sum-card"><div class="sum-info"><div class="sum-label">Budget</div><div class="sum-val">{format_price(result.budget, "INR")}</div></div></div>'
+            f'<div class="sum-card"><div class="sum-info"><div class="sum-label">Total Cost</div><div class="sum-val">{format_price(result.total, "INR")}</div></div></div>'
+            f'<div class="sum-card"><div class="sum-info"><div class="sum-label">{rem_label}</div><div class="sum-val {"sale" if not over else "accent"}">{rem_val}</div></div></div>'
             f'</div>'
+            f'{items_html}'
+            f'</div>',
+            unsafe_allow_html=True,
         )
 
-    over = result.is_over_budget
-    rem_label = "Over Budget" if over else "Remaining"
-    rem_val = f"+{format_price(result.over_amount, 'INR')}" if over else format_price(result.remaining, "INR")
+        save_c1, save_c2 = st.columns([3, 1.2])
+        with save_c1:
+            default_combo_name = f"Combo {len(saved_combos) + 1}"
+            save_name = st.text_input("Combination Name", value=default_combo_name, placeholder="Name (e.g. Summer Sale Combo 1)", key="save_combo_name_text", label_visibility="collapsed")
+        with save_c2:
+            if st.button("💾 Save Combination", type="primary", use_container_width=True, key="save_generated_combo_btn"):
+                c_name = save_name.strip() or default_combo_name
+                new_combo = {
+                    "id": f"combo_{int(time.time())}_{random.randint(100, 999)}",
+                    "name": c_name,
+                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "budget": result.budget,
+                    "count": len(result.games),
+                    "total": result.total,
+                    "remaining": result.remaining,
+                    "over_amount": result.over_amount,
+                    "is_over_budget": result.is_over_budget,
+                    "is_flexible": result.is_flexible,
+                    "games": [
+                        {
+                            "id": g.get("id"),
+                            "name": g.get("name"),
+                            "store": g.get("store"),
+                            "price": g.get("current_price"),
+                            "currency": get_price_currency(g, "current_price"),
+                            "url": g.get("url", ""),
+                        }
+                        for g in result.games
+                    ],
+                }
+                saved_combos, added = add_saved_combination(saved_combos, new_combo)
+                if added:
+                    save_saved_combos_data(gh, saved_combos)
+                    st.session_state.saved_combos = saved_combos
+                    st.success(f"Saved combination: '{c_name}'!")
+                    st.rerun()
 
-    st.markdown(
-        f'<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:20px;">'
-        f'<div style="font-size:16px;font-weight:700;color:#f8fafc;margin-bottom:14px;">Selected Game Combination ({len(result.games)} games)</div>'
-        f'<div class="summary-cards-container">'
-        f'<div class="sum-card"><div class="sum-info"><div class="sum-label">Budget</div><div class="sum-val">{format_price(result.budget, "INR")}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-info"><div class="sum-label">Total Cost</div><div class="sum-val">{format_price(result.total, "INR")}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-info"><div class="sum-label">{rem_label}</div><div class="sum-val {"sale" if not over else "accent"}">{rem_val}</div></div></div>'
-        f'</div>'
-        f'{items_html}'
-        f'</div>',
-        unsafe_allow_html=True,
+    # ── Saved Combinations Section ─────────────────────────────
+    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin:30px 0 12px;">📁 Saved Combinations</div>', unsafe_allow_html=True)
+    if not saved_combos:
+        st.markdown('<div class="empty-box"><div class="empty-icon">📁</div><div class="empty-title">No saved combinations yet</div><div class="empty-sub">Generate a combination above and click "Save Combination" to compare them later.</div></div>', unsafe_allow_html=True)
+        return
+
+    # Comparison selector
+    combo_names_map = {f"{c['name']} (₹{int(c.get('total', 0))}) — {c.get('created_at', '')}": c["id"] for c in saved_combos}
+    selected_names = st.multiselect(
+        "Select combinations to compare side-by-side:",
+        list(combo_names_map.keys()),
+        default=list(combo_names_map.keys())[:2] if len(combo_names_map) >= 2 else list(combo_names_map.keys()),
+        key="compare_combos_multiselect"
     )
+
+    if selected_names:
+        selected_ids = set(combo_names_map[n] for n in selected_names)
+        combos_to_compare = [c for c in saved_combos if c["id"] in selected_ids]
+
+        if len(combos_to_compare) >= 1:
+            st.markdown('<div style="font-size:16px;font-weight:700;color:#f8fafc;margin:16px 0 10px;">⚖️ Side-by-Side Comparison</div>', unsafe_allow_html=True)
+            min_total = min(c.get("total", float("inf")) for c in combos_to_compare)
+
+            comp_cols = st.columns(min(len(combos_to_compare), 4))
+            for idx, c in enumerate(combos_to_compare[:4]):
+                with comp_cols[idx]:
+                    is_cheapest = abs(c.get("total", 0) - min_total) < 0.01 and len(combos_to_compare) > 1
+                    cheapest_banner = '<div style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#4ade80;font-size:11px;font-weight:700;padding:4px;border-radius:6px;margin-bottom:8px;text-align:center;">🏆 CHEAPEST COMBINATION</div>' if is_cheapest else ''
+
+                    c_games_html = ""
+                    for g in c.get("games", []):
+                        p_str = format_price(g.get("price"), g.get("currency", "INR"))
+                        s_tag = render_store_tag(g.get("store", ""))
+                        c_games_html += f'<div style="font-size:12px;padding:6px 0;border-bottom:1px solid #1a2337;display:flex;justify-content:space-between;"><span>{g.get("name")} {s_tag}</span><span style="font-weight:700;color:#f8fafc;">{p_str}</span></div>'
+
+                    st.markdown(
+                        f'<div style="background:#121827;border:1px solid {"#4f46e5" if is_cheapest else "#1f293d"};border-radius:10px;padding:14px;">'
+                        f'{cheapest_banner}'
+                        f'<div style="font-size:15px;font-weight:700;color:#f8fafc;margin-bottom:2px;">{c.get("name")}</div>'
+                        f'<div style="font-size:11px;color:#64748b;margin-bottom:10px;">{c.get("created_at")}</div>'
+                        f'<div style="font-size:12px;color:#94a3b8;">Total: <strong style="font-size:17px;color:#4ade80;">{format_price(c.get("total"), "INR")}</strong></div>'
+                        f'<div style="font-size:11px;color:#64748b;margin-bottom:10px;">Budget: {format_price(c.get("budget"), "INR")}</div>'
+                        f'<div>{c_games_html}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+    # Saved combinations list
+    st.markdown('<div style="font-size:15px;font-weight:700;color:#f8fafc;margin:24px 0 10px;">All Saved Combinations</div>', unsafe_allow_html=True)
+    for c in saved_combos:
+        c_id = c["id"]
+        c_name = c.get("name", "Saved Combination")
+        c_tot = format_price(c.get("total"), "INR")
+        c_bud = format_price(c.get("budget"), "INR")
+        c_date = c.get("created_at", "")
+
+        games_list_str = ", ".join(f"{g.get('name')} ({STORE_LABELS.get(g.get('store'), g.get('store'))}: {format_price(g.get('price'), 'INR')})" for g in c.get("games", []))
+
+        st.markdown(
+            f'<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:16px;margin-bottom:12px;">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;">'
+            f'<div>'
+            f'<div style="font-size:15px;font-weight:700;color:#f8fafc;">{c_name}</div>'
+            f'<div style="font-size:11px;color:#64748b;">Saved: {c_date} · Budget: {c_bud}</div>'
+            f'</div>'
+            f'<div style="font-size:18px;font-weight:800;color:#4ade80;">{c_tot}</div>'
+            f'</div>'
+            f'<div style="font-size:13px;color:#cbd5e1;margin-top:10px;line-height:1.5;"><strong>Games ({len(c.get("games", []))}):</strong> {games_list_str}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        d_col1, _ = st.columns([1.2, 5])
+        with d_col1:
+            if st.button("🗑 Delete Combo", key=f"del_combo_{c_id}", type="secondary", use_container_width=True):
+                updated_combos = remove_saved_combination(saved_combos, c_id)
+                save_saved_combos_data(gh, updated_combos)
+                st.session_state.saved_combos = updated_combos
+                st.success(f"Deleted combination '{c_name}'")
+                st.rerun()
 
 
 # ── View 6: 🔥 Deals ─────────────────────────────────────────────────
@@ -1570,7 +1800,7 @@ def main():
     elif nav_choice == "📈 Price History":
         render_history_view(games, history)
     elif nav_choice == "🧮 Smart Calculator":
-        render_smart_calculator(games)
+        render_smart_calculator(games, gh)
     elif nav_choice == "🔥 Deals":
         render_deals_view(games, history, gh)
     elif nav_choice == "📧 Reports":

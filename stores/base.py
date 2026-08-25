@@ -32,6 +32,7 @@ class SearchResult:
     url: str = ""
     is_free: bool = False
     edition: str = ""  # e.g. "Standard", "Deluxe", "Complete", "GOTY"
+    store_tags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -50,6 +51,7 @@ class PricingInfo:
     sale_name: Optional[str] = None  # e.g. "Steam Summer Sale"
     platform: str = ""  # e.g. "steam", "epic", "gog"
     drm: str = ""  # e.g. "Steam", "Epic", "DRM-free"
+    store_tags: list[str] = field(default_factory=list)
 
 
 @dataclass

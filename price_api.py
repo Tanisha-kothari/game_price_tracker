@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 import requests
@@ -44,6 +44,7 @@ class GameDetails:
     currency: str = "INR"
     cover_image: str = ""
     store_id: str = ""
+    store_tags: list[str] = field(default_factory=list)
 
 
 class BaseFetcher(ABC):
@@ -107,6 +108,15 @@ class SteamFetcher(BaseFetcher):
                 return GameDetails(store_id=app_id)
             price = self._extract_price(details)
             currency = (details.get("price_overview") or {}).get("currency", self.DEFAULT_CURRENCY)
+            raw_genres = details.get("genres", [])
+            store_tags = []
+            if isinstance(raw_genres, list):
+                for g in raw_genres:
+                    if isinstance(g, dict) and g.get("description"):
+                        t = g["description"].strip()
+                        if t and t not in store_tags:
+                            store_tags.append(t)
+
             return GameDetails(
                 name=details.get("name", "Unknown Game"),
                 current_price=price["current"],
@@ -117,6 +127,7 @@ class SteamFetcher(BaseFetcher):
                 currency=currency,
                 cover_image=details.get("header_image", ""),
                 store_id=app_id,
+                store_tags=store_tags[:5],
             )
         except requests.RequestException as e:
             logger.error("Steam API request failed for app %s: %s", app_id, e)

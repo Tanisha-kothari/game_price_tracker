@@ -86,6 +86,10 @@ class GitHubManager:
     def save_history(self, history: dict, message: str = "Update history.json") -> dict:
         return self.save_file("history.json", dump_history(history), message)
 
+    def save_saved_combinations(self, combos: list[dict], message: str = "Update saved_combinations.json") -> dict:
+        from database import dump_saved_combinations
+        return self.save_file("saved_combinations.json", dump_saved_combinations(combos), message)
+
     def test_connection(self) -> bool:
         try:
             resp = requests.get(self._base_url, headers=self._headers, timeout=20)

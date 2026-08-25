@@ -115,6 +115,11 @@ def normalize_game(game: dict) -> dict:
     if "game_id" not in game or not game.get("game_id"):
         game["game_id"] = canonical_game_id(game.get("name", ""))
 
+    if "store_tags" not in game or not isinstance(game.get("store_tags"), list):
+        game["store_tags"] = []
+    if "custom_tags" not in game or not isinstance(game.get("custom_tags"), list):
+        game["custom_tags"] = []
+
     return game
 
 
@@ -421,6 +426,10 @@ def apply_game_update(game: dict, details, today: Optional[str] = None) -> dict:
             game["lowest_price"] = price
             game["lowest_currency"] = currency
 
+    new_tags = getattr(details, "store_tags", None)
+    if new_tags and isinstance(new_tags, list):
+        game["store_tags"] = new_tags
+
     return events
 
 
@@ -593,6 +602,8 @@ def build_game_from_details(details, url: str, store: str, target_price: Optiona
         "last_checked": today_str(),
         "currency": details.currency,
         "cover_image": details.cover_image,
+        "store_tags": getattr(details, "store_tags", []) or [],
+        "custom_tags": [],
     }
     if details.is_on_sale:
         game["sale_started"] = today_str()
@@ -731,3 +742,109 @@ def filter_grouped_games(
             and any(g["store"] == "epic" for g in listings)
         }
     return grouped
+
+
+# ── Saved Combinations Persistence & Helper Functions ─────────────────
+
+SAVED_COMBINATIONS_FILE = "saved_combinations.json"
+
+
+def load_saved_combinations(content: str) -> list[dict]:
+    if not content or not content.strip():
+        return []
+    try:
+        data = json.loads(content)
+        if isinstance(data, list):
+            return data
+        return []
+    except Exception as e:
+        logger.error("Failed to parse saved_combinations.json: %s", e)
+        return []
+
+
+def dump_saved_combinations(combos: list[dict]) -> str:
+    return json.dumps(combos, indent=2, ensure_ascii=False)
+
+
+def add_saved_combination(combos: list[dict], combo: dict) -> tuple[list[dict], bool]:
+    cid = combo.get("id", "")
+    for existing in combos:
+        if existing.get("id") == cid:
+            return combos, False
+    combos.insert(0, combo)
+    return combos, True
+
+
+def remove_saved_combination(combos: list[dict], combo_id: str) -> list[dict]:
+    return [c for c in combos if c.get("id") != combo_id]
+
+
+# ── Custom Tags Helper Functions ─────────────────────────────────────
+
+def add_custom_tag_to_game(games: list[dict], game_id: str, tag_name: str) -> bool:
+    clean_tag = tag_name.strip()
+    if not clean_tag:
+        return False
+    modified = False
+    for game in games:
+        if game.get("id") == game_id:
+            normalize_game(game)
+            tags = game.setdefault("custom_tags", [])
+            if clean_tag.lower() not in [t.lower() for t in tags]:
+                tags.append(clean_tag)
+                modified = True
+            break
+    return modified
+
+
+def remove_custom_tag_from_game(games: list[dict], game_id: str, tag_name: str) -> bool:
+    clean_tag = tag_name.strip().lower()
+    modified = False
+    for game in games:
+        if game.get("id") == game_id:
+            normalize_game(game)
+            tags = game.get("custom_tags", [])
+            new_tags = [t for t in tags if t.lower() != clean_tag]
+            if len(new_tags) != len(tags):
+                game["custom_tags"] = new_tags
+                modified = True
+            break
+    return modified
+
+
+def get_all_unique_tags(games: list[dict]) -> tuple[list[str], list[str]]:
+    store_tags_set = set()
+    custom_tags_set = set()
+    for g in games:
+        normalize_game(g)
+        for st in g.get("store_tags", []):
+            if st and isinstance(st, str):
+                store_tags_set.add(st)
+        for ct in g.get("custom_tags", []):
+            if ct and isinstance(ct, str):
+                custom_tags_set.add(ct)
+    return sorted(list(store_tags_set)), sorted(list(custom_tags_set))
+
+
+def filter_grouped_games_by_tag(
+    grouped: dict[str, list[dict]],
+    tag_filter: str,
+) -> dict[str, list[dict]]:
+    """Filter grouped canonical games by store or custom tag."""
+    if not tag_filter or tag_filter == "All":
+        return grouped
+    tf_lower = tag_filter.lower()
+    matching_grouped = {}
+    for gid, listings in grouped.items():
+        has_tag = False
+        for g in listings:
+            normalize_game(g)
+            st_match = any(t.lower() == tf_lower for t in g.get("store_tags", []))
+            ct_match = any(t.lower() == tf_lower for t in g.get("custom_tags", []))
+            if st_match or ct_match:
+                has_tag = True
+                break
+        if has_tag:
+            matching_grouped[gid] = listings
+    return matching_grouped
+
