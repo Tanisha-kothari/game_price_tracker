@@ -668,6 +668,77 @@ def save_email_prefs_data(gh: GitHubManager, prefs: dict):
         logger.error("GitHub email_preferences.json sync error: %s", e)
 
 
+def is_placeholder_secret(val: str) -> bool:
+    if not val or not val.strip():
+        return True
+    v = val.strip().lower()
+    placeholders = {
+        "your_email@gmail.com",
+        "your_email",
+        "your_app_password",
+        "your_password",
+        "your_email_address",
+        "your_email_password",
+        "example@example.com",
+        "xxx",
+        "placeholder",
+    }
+    return any(p in v for p in placeholders)
+
+
+def get_email_credentials() -> tuple[str, str, str, str, int]:
+    """Safely fetch EMAIL_ADDRESS, EMAIL_PASSWORD, NOTIFY_TO, SMTP_SERVER, SMTP_PORT."""
+    email_address = os.environ.get("EMAIL_ADDRESS", "")
+    email_password = os.environ.get("EMAIL_PASSWORD", "")
+    notify_to = os.environ.get("NOTIFY_TO") or os.environ.get("EMAIL_TO", "")
+    smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port_raw = os.environ.get("SMTP_PORT", "587")
+
+    try:
+        if hasattr(st, "secrets"):
+            if not email_address:
+                email_address = (
+                    st.secrets.get("EMAIL_ADDRESS")
+                    or st.secrets.get("email_address")
+                    or st.secrets.get("EMAIL_USER", "")
+                )
+            if not email_password:
+                email_password = (
+                    st.secrets.get("EMAIL_PASSWORD")
+                    or st.secrets.get("email_password")
+                    or st.secrets.get("EMAIL_PASS", "")
+                )
+            if not notify_to:
+                notify_to = (
+                    st.secrets.get("NOTIFY_TO")
+                    or st.secrets.get("EMAIL_TO")
+                    or st.secrets.get("notify_to")
+                    or st.secrets.get("email_to", "")
+                )
+            if smtp_server == "smtp.gmail.com":
+                smtp_server = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
+            if smtp_port_raw == "587":
+                smtp_port_raw = st.secrets.get("SMTP_PORT", "587")
+    except Exception:
+        pass
+
+    try:
+        smtp_port = int(smtp_port_raw)
+    except Exception:
+        smtp_port = 587
+
+    if not notify_to:
+        notify_to = email_address
+
+    return (
+        str(email_address or "").strip(),
+        str(email_password or "").strip(),
+        str(notify_to or "").strip(),
+        str(smtp_server or "smtp.gmail.com").strip(),
+        smtp_port,
+    )
+
+
 def get_last_sync(games: list[dict]) -> str:
     if not games:
         return "—"
@@ -1843,30 +1914,36 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
 
         with btn_col2:
             if st.button("✉️ Send Test Email", type="secondary", use_container_width=True):
-                email_addr = os.environ.get("EMAIL_ADDRESS") or st.secrets.get("EMAIL_ADDRESS", "")
-                email_pwd = os.environ.get("EMAIL_PASSWORD") or st.secrets.get("EMAIL_PASSWORD", "")
-                to_addr = recipient.strip() or os.environ.get("EMAIL_TO") or st.secrets.get("EMAIL_TO", email_addr)
-                smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
-                smtp_port = int(os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT", "587"))
+                email_addr, email_pwd, notify_to, smtp_server, smtp_port = get_email_credentials()
+                target_to = recipient.strip() or notify_to or email_addr
 
-                if not email_addr or not email_pwd:
-                    st.error("❌ Test email could not be sent. Missing EMAIL_ADDRESS or EMAIL_PASSWORD secrets.")
+                if is_placeholder_secret(email_addr) or is_placeholder_secret(email_pwd):
+                    st.error("Email credentials are not configured. Add EMAIL_ADDRESS and EMAIL_PASSWORD to Streamlit Secrets.")
                 else:
                     with st.spinner("Sending test email using current preferences..."):
                         try:
+                            import smtplib
                             from notifier import send_daily_report
+
                             success = send_daily_report(
-                                email_addr, email_pwd, to_addr, games, history,
+                                email_addr,
+                                email_pwd,
+                                target_to,
+                                games,
+                                history,
                                 prefs=current_form_prefs,
-                                smtp_server=smtp_server, smtp_port=smtp_port,
+                                smtp_server=smtp_server,
+                                smtp_port=smtp_port,
                             )
                             if success:
-                                st.success(f"✅ Test email sent successfully! Check inbox: {to_addr}")
+                                st.success("✅ Test email sent successfully! Check your inbox.")
                             else:
-                                st.error("❌ Test email could not be sent. Check SMTP credentials and connection.")
+                                st.error("❌ Test email could not be sent.")
+                        except smtplib.SMTPAuthenticationError:
+                            st.error("SMTP authentication failed. Check your email address and App Password.")
                         except Exception as e:
-                            logger.error("Test email error: %s", e)
-                            st.error("❌ Test email failed: Could not connect to mail server.")
+                            logger.error("Test email sending failed: %s", e)
+                            st.error("❌ Test email could not be sent.")
 
         with btn_col3:
             show_preview = st.button("👀 Preview Email", type="secondary", use_container_width=True)
@@ -1908,16 +1985,12 @@ def main():
 
     if "scheduler_started" not in st.session_state:
         st.session_state.scheduler_started = True
-        email_addr = os.environ.get("EMAIL_ADDRESS") or st.secrets.get("EMAIL_ADDRESS", "")
-        email_pwd = os.environ.get("EMAIL_PASSWORD") or st.secrets.get("EMAIL_PASSWORD", "")
-        email_to = os.environ.get("EMAIL_TO") or st.secrets.get("EMAIL_TO", email_addr)
+        email_addr, email_pwd, notify_to, smtp_server, smtp_port = get_email_credentials()
         report_time = os.environ.get("EMAIL_REPORT_TIME") or st.secrets.get("EMAIL_REPORT_TIME", "11:05")
-        smtp_server = os.environ.get("SMTP_SERVER") or st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
-        smtp_port = int(os.environ.get("SMTP_PORT") or st.secrets.get("SMTP_PORT", "587"))
-        if email_addr and email_pwd:
+        if email_addr and email_pwd and not is_placeholder_secret(email_addr) and not is_placeholder_secret(email_pwd):
             start_daily_report_scheduler(
                 gh, email_addr, email_pwd,
-                to_address=email_to, send_time=report_time,
+                to_address=notify_to, send_time=report_time,
                 smtp_server=smtp_server, smtp_port=smtp_port,
             )
         else:

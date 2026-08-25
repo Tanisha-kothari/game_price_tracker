@@ -216,11 +216,11 @@ def send_email(
             server.starttls()
             server.login(email_address, email_password)
             server.send_message(msg)
-    except smtplib.SMTPAuthenticationError:
+    except smtplib.SMTPAuthenticationError as e:
         logger.error(
             "SMTP authentication failed: check EMAIL_ADDRESS and EMAIL_PASSWORD secrets"
         )
-        return False
+        raise e
     except smtplib.SMTPConnectError:
         logger.error(
             "SMTP connection failed: could not connect to %s:%s",
