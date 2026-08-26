@@ -224,13 +224,14 @@ CUSTOM_CSS = """
         color: var(--theme-text-primary) !important;
         font-size: 13px !important;
     }
-    div[data-baseweb="select"] span {
+    div[data-baseweb="select"] span, div[data-baseweb="select"] div, div[data-baseweb="select"] p, div[data-baseweb="select"] svg {
         color: var(--theme-text-primary) !important;
+        fill: var(--theme-text-primary) !important;
     }
 
     /* Multiselect Tags / Pills */
     [data-baseweb="tag"], span[data-baseweb="tag"] {
-        background: var(--theme-bg-card-elevated) !important;
+        background-color: var(--theme-bg-card-elevated) !important;
         border: 1px solid var(--theme-border-color) !important;
         color: var(--theme-text-primary) !important;
         border-radius: var(--theme-button-radius, 6px) !important;
@@ -243,27 +244,43 @@ CUSTOM_CSS = """
     }
 
     /* Dropdown Menus & Popovers */
-    [data-baseweb="popover"], [data-baseweb="menu"], ul[role="listbox"] {
+    [data-baseweb="popover"], [data-baseweb="menu"], ul[role="listbox"], [data-baseweb="popover"] > div {
         background-color: var(--theme-bg-input) !important;
         border: 1px solid var(--theme-border-color) !important;
         box-shadow: var(--theme-shadow-card) !important;
     }
-    [data-baseweb="option"], li[role="option"] {
+    [data-baseweb="option"], li[role="option"], [data-baseweb="option"] span, li[role="option"] span, [data-baseweb="option"] div, li[role="option"] div {
         background-color: var(--theme-bg-input) !important;
         color: var(--theme-text-primary) !important;
     }
-    [data-baseweb="option"]:hover, [data-baseweb="option"][aria-selected="true"], li[role="option"]:hover {
+    [data-baseweb="option"]:hover, [data-baseweb="option"][aria-selected="true"], li[role="option"]:hover, [data-baseweb="option"][aria-selected="true"] span {
         background-color: var(--theme-bg-card-elevated) !important;
         color: var(--theme-text-primary) !important;
     }
 
     /* Streamlit Expanders, Checkboxes, Radios */
-    [data-testid="stExpander"], div[data-testid="stExpanderDetails"] {
+    [data-testid="stExpander"], details[data-testid="stExpander"], div[data-testid="stExpanderDetails"] {
         background-color: var(--theme-bg-card) !important;
-        border-color: var(--theme-border-color) !important;
+        border: 1px solid var(--theme-border-color) !important;
+        border-radius: var(--theme-card-radius, 10px) !important;
+        color: var(--theme-text-primary) !important;
+        box-shadow: var(--theme-shadow-card) !important;
+    }
+    summary[data-testid="stExpanderSummary"], [data-testid="stExpanderSummary"] {
+        background-color: var(--theme-bg-card) !important;
+        color: var(--theme-text-primary) !important;
+        border-radius: var(--theme-card-radius, 10px) !important;
+    }
+    summary[data-testid="stExpanderSummary"]:hover, [data-testid="stExpanderSummary"]:hover {
+        background-color: var(--theme-bg-card-elevated) !important;
         color: var(--theme-text-primary) !important;
     }
-    [data-testid="stExpanderSummary"] span, [data-testid="stExpanderSummary"] p {
+    summary[data-testid="stExpanderSummary"] span, summary[data-testid="stExpanderSummary"] p, [data-testid="stExpanderSummary"] div, [data-testid="stExpanderSummary"] svg {
+        color: var(--theme-text-primary) !important;
+        fill: var(--theme-text-primary) !important;
+        font-weight: 700 !important;
+    }
+    .stRadio label, .stCheckbox label, .stRadio label p, .stCheckbox label p {
         color: var(--theme-text-primary) !important;
     }
 
@@ -1977,11 +1994,20 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
 
         st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 8px;">4. Visual Theme & Header</div>', unsafe_allow_html=True)
         th_col1, th_col2 = st.columns(2)
+        app_theme_id = st.session_state.get("theme_settings", {}).get("theme_id", "midnight_gamer")
+
         with th_col1:
             theme_opts = ["Use application theme", "Midnight", "Aurora", "Minimal"] + [t["name"] for t in THEMES.values()]
             curr_theme = prefs.get("theme", "Use application theme")
             theme_idx = theme_opts.index(curr_theme) if curr_theme in theme_opts else 0
             chosen_theme = st.selectbox("Select email visual theme:", theme_opts, index=theme_idx)
+
+            from themes import get_email_theme
+            eth_info = get_email_theme(chosen_theme, app_theme_id)
+            mode_badge = '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;color:#ea580c;background:rgba(234,88,12,0.15);">☀️ LIGHT</span>' if eth_info.get("mode") == "light" else '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;color:#a855f7;background:rgba(168,85,247,0.15);">🌙 DARK</span>'
+            swatches = "".join(f'<div style="width:14px;height:14px;border-radius:50%;background:{c};border:1px solid var(--theme-border-color);" title="Swatch"></div>' for c in eth_info.get("swatch_colors", ["#0f172a", "#1e293b", "#6366f1", "#ffffff"]))
+            st.markdown(f'<div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding:6px 10px;background:var(--theme-bg-card-elevated);border:1px solid var(--theme-border-color);border-radius:6px;">{mode_badge} <div style="display:flex;gap:4px;">{swatches}</div><span style="font-size:11px;color:var(--theme-text-muted);font-weight:600;">{eth_info.get("name")}</span></div>', unsafe_allow_html=True)
+
         with th_col2:
             report_title = st.text_input("Report Title:", value=prefs.get("report_title", "🎮 Daily Game Drop"))
 
@@ -1999,6 +2025,19 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
             feat_idx = feat_opts.index(curr_feat_title) if curr_feat_title in feat_opts else 0
             chosen_feat = st.selectbox("⭐ Select Featured Game (Hero Card):", feat_opts, index=feat_idx)
             featured_game_id = game_title_map.get(chosen_feat) if chosen_feat != "None" else None
+
+            if chosen_feat != "None" and featured_game_id:
+                fg_listings = unique_games_dict.get(featured_game_id, [])
+                fg_item = fg_listings[0] if fg_listings else None
+                p_str = format_price(fg_item.get("current_price"), get_price_currency(fg_item, "current_price")) if fg_item else ""
+                s_badge = render_store_tag(fg_item.get("store", "")) if fg_item else ""
+                st.markdown(
+                    f'<div style="background:var(--theme-bg-card-elevated);border:1px solid var(--theme-accent-primary);border-radius:6px;padding:6px 10px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;">'
+                    f'<div style="font-size:12px;font-weight:700;color:var(--theme-text-primary);">⭐ Selected: {chosen_feat} {s_badge}</div>'
+                    f'<div style="font-size:12px;font-weight:800;color:var(--theme-sale);">{p_str}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
         with feat_col2:
             send_time = st.text_input("Daily Send Time (HH:MM):", value=prefs.get("send_time", "11:05"))

@@ -894,3 +894,263 @@ def get_contextual_message(
         return "No search results found."
 
     return ""
+
+
+# ── Dedicated Email Themes Registry ─────────────────────────────────
+EMAIL_THEMES: dict[str, dict[str, Any]] = {
+    "sakura_dream": {
+        "id": "sakura_dream",
+        "name": "Sakura Dream",
+        "mode": "light",
+        "bg_body": "#fff0f5",
+        "bg_container": "#fdf7fa",
+        "bg_card": "#ffffff",
+        "bg_card_elevated": "#fce4ec",
+        "border_color": "#f8c8dc",
+        "border_subtle": "#fce4ec",
+        "text_primary": "#2d1732",
+        "text_secondary": "#5c3d64",
+        "text_muted": "#886791",
+        "accent": "#ff85a2",
+        "sale_color": "#e04870",
+        "sale_bg": "rgba(224, 72, 112, 0.12)",
+        "btn_bg": "#ff85a2",
+        "btn_text": "#ffffff",
+        "swatch_colors": ["#fff0f5", "#ffffff", "#ff85a2", "#2d1732"],
+    },
+    "wuxia_ink": {
+        "id": "wuxia_ink",
+        "name": "Wuxia / Ink & Jade",
+        "mode": "light",
+        "bg_body": "#f5efe6",
+        "bg_container": "#f9f6f0",
+        "bg_card": "#ffffff",
+        "bg_card_elevated": "#f3ece0",
+        "border_color": "#d6cebf",
+        "border_subtle": "#e7e0d3",
+        "text_primary": "#1c1917",
+        "text_secondary": "#44403c",
+        "text_muted": "#78716c",
+        "accent": "#00a86b",
+        "sale_color": "#00a86b",
+        "sale_bg": "rgba(0, 168, 107, 0.12)",
+        "btn_bg": "#00a86b",
+        "btn_text": "#ffffff",
+        "swatch_colors": ["#f5efe6", "#ffffff", "#00a86b", "#1c1917"],
+    },
+    "cozy_forest": {
+        "id": "cozy_forest",
+        "name": "Cozy Forest",
+        "mode": "light",
+        "bg_body": "#f4f7f2",
+        "bg_container": "#f9faf7",
+        "bg_card": "#ffffff",
+        "bg_card_elevated": "#eaf2e8",
+        "border_color": "#cddcd2",
+        "border_subtle": "#dfebd4",
+        "text_primary": "#1c2e24",
+        "text_secondary": "#3e5749",
+        "text_muted": "#688574",
+        "accent": "#52796f",
+        "sale_color": "#407a52",
+        "sale_bg": "rgba(64, 122, 82, 0.12)",
+        "btn_bg": "#52796f",
+        "btn_text": "#ffffff",
+        "swatch_colors": ["#f4f7f2", "#ffffff", "#52796f", "#1c2e24"],
+    },
+    "arcane_library": {
+        "id": "arcane_library",
+        "name": "Wizarding / Arcane Library",
+        "mode": "light",
+        "bg_body": "#f7f1e3",
+        "bg_container": "#fbf8f1",
+        "bg_card": "#ffffff",
+        "bg_card_elevated": "#f5ebd7",
+        "border_color": "#dfd2bc",
+        "border_subtle": "#ede3d1",
+        "text_primary": "#2b1810",
+        "text_secondary": "#54382b",
+        "text_muted": "#856251",
+        "accent": "#9f1239",
+        "sale_color": "#15803d",
+        "sale_bg": "rgba(21, 128, 61, 0.12)",
+        "btn_bg": "#9f1239",
+        "btn_text": "#faf3e0",
+        "swatch_colors": ["#f7f1e3", "#ffffff", "#9f1239", "#2b1810"],
+    },
+    "celestial": {
+        "id": "celestial",
+        "name": "Celestial Constellation",
+        "mode": "light",
+        "bg_body": "#f0f4f8",
+        "bg_container": "#f8fafc",
+        "bg_card": "#ffffff",
+        "bg_card_elevated": "#e4eef7",
+        "border_color": "#cbd5e1",
+        "border_subtle": "#e2e8f0",
+        "text_primary": "#0f172a",
+        "text_secondary": "#334155",
+        "text_muted": "#64748b",
+        "accent": "#6366f1",
+        "sale_color": "#0284c7",
+        "sale_bg": "rgba(2, 132, 199, 0.12)",
+        "btn_bg": "#4f46e5",
+        "btn_text": "#ffffff",
+        "swatch_colors": ["#f0f4f8", "#ffffff", "#6366f1", "#0f172a"],
+    },
+    "minimal": {
+        "id": "minimal",
+        "name": "Minimal",
+        "mode": "light",
+        "bg_body": "#ffffff",
+        "bg_container": "#f8fafc",
+        "bg_card": "#ffffff",
+        "bg_card_elevated": "#f1f5f9",
+        "border_color": "#e2e8f0",
+        "border_subtle": "#f1f5f9",
+        "text_primary": "#0f172a",
+        "text_secondary": "#334155",
+        "text_muted": "#64748b",
+        "accent": "#2563eb",
+        "sale_color": "#16a34a",
+        "sale_bg": "rgba(22, 163, 74, 0.12)",
+        "btn_bg": "#2563eb",
+        "btn_text": "#ffffff",
+        "swatch_colors": ["#ffffff", "#ffffff", "#2563eb", "#0f172a"],
+    },
+    "midnight_gamer": {
+        "id": "midnight_gamer",
+        "name": "Midnight Gamer",
+        "mode": "dark",
+        "bg_body": "#0f172a",
+        "bg_container": "#1e293b",
+        "bg_card": "#27354a",
+        "bg_card_elevated": "#32445e",
+        "border_color": "#3b4f73",
+        "border_subtle": "#273752",
+        "text_primary": "#f8fafc",
+        "text_secondary": "#cbd5e1",
+        "text_muted": "#94a3b8",
+        "accent": "#818cf8",
+        "sale_color": "#4ade80",
+        "sale_bg": "rgba(74, 222, 128, 0.22)",
+        "btn_bg": "#6366f1",
+        "btn_text": "#ffffff",
+        "swatch_colors": ["#0f172a", "#27354a", "#818cf8", "#f8fafc"],
+    },
+    "cyberpunk": {
+        "id": "cyberpunk",
+        "name": "Cyberpunk",
+        "mode": "dark",
+        "bg_body": "#08070d",
+        "bg_container": "#13111c",
+        "bg_card": "#1a1726",
+        "bg_card_elevated": "#252136",
+        "border_color": "#433b63",
+        "border_subtle": "#252038",
+        "text_primary": "#f0f6fc",
+        "text_secondary": "#dcd2f8",
+        "text_muted": "#b1a0e3",
+        "accent": "#00f0ff",
+        "sale_color": "#ff007f",
+        "sale_bg": "rgba(255, 0, 127, 0.25)",
+        "btn_bg": "#00b4d8",
+        "btn_text": "#050408",
+        "swatch_colors": ["#08070d", "#1a1726", "#00f0ff", "#f0f6fc"],
+    },
+    "gothic_academia": {
+        "id": "gothic_academia",
+        "name": "Gothic / Dark Academia",
+        "mode": "dark",
+        "bg_body": "#0f0d10",
+        "bg_container": "#1c181e",
+        "bg_card": "#27212b",
+        "bg_card_elevated": "#342d3a",
+        "border_color": "#4e4354",
+        "border_subtle": "#2c2630",
+        "text_primary": "#f7f0e6",
+        "text_secondary": "#ebdfcf",
+        "text_muted": "#cca99a",
+        "accent": "#d4af37",
+        "sale_color": "#d4af37",
+        "sale_bg": "rgba(212, 175, 55, 0.25)",
+        "btn_bg": "#800f2f",
+        "btn_text": "#f7f0e6",
+        "swatch_colors": ["#0f0d10", "#27212b", "#d4af37", "#f7f0e6"],
+    },
+    "aurora": {
+        "id": "aurora",
+        "name": "Aurora",
+        "mode": "dark",
+        "bg_body": "#090d16",
+        "bg_container": "#131b2e",
+        "bg_card": "#1a253d",
+        "bg_card_elevated": "#253456",
+        "border_color": "rgba(139, 92, 246, 0.3)",
+        "border_subtle": "rgba(139, 92, 246, 0.15)",
+        "text_primary": "#f8fafc",
+        "text_secondary": "#cbd5e1",
+        "text_muted": "#94a3b8",
+        "accent": "#8b5cf6",
+        "sale_color": "#22c55e",
+        "sale_bg": "rgba(34, 197, 94, 0.2)",
+        "btn_bg": "#7c3aed",
+        "btn_text": "#ffffff",
+        "swatch_colors": ["#090d16", "#1a253d", "#8b5cf6", "#f8fafc"],
+    },
+}
+
+
+def get_email_theme(theme_name: str, app_theme_id: str = "midnight_gamer") -> dict[str, Any]:
+    """Resolves email theme token mapping cleanly for any selected theme name."""
+    if theme_name == "Use application theme":
+        target_id = app_theme_id
+    else:
+        # Match by name or ID
+        target_id = None
+        for eid, eth in EMAIL_THEMES.items():
+            if eth["name"].lower() == theme_name.lower() or eid.lower() == theme_name.lower():
+                target_id = eid
+                break
+        if not target_id:
+            for tid, t in THEMES.items():
+                if t["name"].lower() == theme_name.lower() or tid.lower() == theme_name.lower():
+                    target_id = tid
+                    break
+        if not target_id:
+            target_id = "midnight_gamer"
+
+    if target_id in EMAIL_THEMES:
+        return EMAIL_THEMES[target_id]
+
+    if target_id in THEMES:
+        t = THEMES[target_id]
+        is_light = (t.get("mode") == "light")
+        return {
+            "id": t["id"],
+            "name": t["name"],
+            "mode": t.get("mode", "dark"),
+            "bg_body": "#fff0f5" if is_light else (t.get("bg_body", "#0f172a") if not t.get("bg_body", "").startswith("linear") else "#0f172a"),
+            "bg_container": t.get("bg_sidebar", "#fdf7fa" if is_light else "#1e293b"),
+            "bg_card": t.get("bg_card", "#ffffff" if is_light else "#27354a"),
+            "bg_card_elevated": t.get("bg_card_elevated", "#fce4ec" if is_light else "#32445e"),
+            "border_color": t.get("border_color", "#f8c8dc" if is_light else "#3b4f73"),
+            "border_subtle": t.get("border_subtle", "#fce4ec" if is_light else "#273752"),
+            "text_primary": t.get("text_primary", "#2d1732" if is_light else "#f8fafc"),
+            "text_secondary": t.get("text_secondary", "#5c3d64" if is_light else "#cbd5e1"),
+            "text_muted": t.get("text_muted", "#886791" if is_light else "#94a3b8"),
+            "accent": t.get("accent_primary", "#ff85a2" if is_light else "#818cf8"),
+            "sale_color": t.get("sale_color", "#e04870" if is_light else "#4ade80"),
+            "sale_bg": t.get("sale_bg", "rgba(224, 72, 112, 0.12)" if is_light else "rgba(74, 222, 128, 0.22)"),
+            "btn_bg": t.get("btn_primary_bg", "#ff85a2" if is_light else "#6366f1"),
+            "btn_text": t.get("btn_primary_text", "#ffffff"),
+            "swatch_colors": [
+                t.get("bg_sidebar", "#fff0f5" if is_light else "#0f172a"),
+                t.get("bg_card", "#ffffff" if is_light else "#27354a"),
+                t.get("accent_primary", "#ff85a2" if is_light else "#818cf8"),
+                t.get("text_primary", "#2d1732" if is_light else "#f8fafc"),
+            ],
+        }
+
+    return EMAIL_THEMES["midnight_gamer"]
+

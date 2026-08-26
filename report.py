@@ -86,7 +86,7 @@ def _build_section(title: str, icon: str, content: str) -> str:
 STORE_NAMES = {"steam": "Steam", "epic": "Epic Games", "gog": "GOG"}
 
 
-def _cross_store_deals_section(games: list[dict]) -> str:
+def _cross_store_deals_section(games: list[dict], eth: dict) -> str:
     """Best cross-store deals for games tracked on both Steam and Epic."""
     grouped = group_games_by_identity(games)
     blocks = []
@@ -118,17 +118,17 @@ def _cross_store_deals_section(games: list[dict]) -> str:
         if cheapest_store and steam.get("current_price") is not None and epic.get("current_price") is not None:
             prices = [steam.get("current_price"), epic.get("current_price")]
             if max(prices) > min(prices):
-                winner = f"<p style=\"color:#22c55e;font-size:13px;margin:8px 0 0;\">🏆 Cheapest: <strong>{cheapest_store}</strong></p>"
+                winner = f'<p style="color:{eth.get("sale_color", "#22c55e")};font-size:13px;margin:8px 0 0;font-weight:700;">🏆 Cheapest: <strong>{cheapest_store}</strong></p>'
 
         blocks.append(
-            f"<div style=\"margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(51,65,85,0.25);\">"
-            f"<div style=\"color:#f1f5f9;font-size:15px;font-weight:700;margin-bottom:6px;\">{name}</div>"
-            f"<div style=\"color:#94a3b8;font-size:13px;line-height:1.6;\">{'<br>'.join(rows)}</div>"
-            f"{winner}</div>"
+            f'<div style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid {eth.get("border_subtle", "rgba(51,65,85,0.25)")};">'
+            f'<div style="color:{eth.get("text_primary", "#f1f5f9")};font-size:15px;font-weight:700;margin-bottom:6px;">{name}</div>'
+            f'<div style="color:{eth.get("text_secondary", "#94a3b8")};font-size:13px;line-height:1.6;">{"<br>".join(rows)}</div>'
+            f'{winner}</div>'
         )
 
     if not blocks:
-        return '<p style="color:#64748b;font-size:13px;">No games tracked on both Steam and Epic yet.</p>'
+        return f'<p style="color:{eth.get("text_muted", "#64748b")};font-size:13px;">No games tracked on both Steam and Epic yet.</p>'
     return "".join(blocks[:10])
 
 
@@ -598,63 +598,24 @@ def build_daily_report(games: list[dict], history: dict, prefs: Optional[dict] =
     report_title = merged_prefs.get("report_title") or "🎮 Daily Game Drop"
 
     # Theme Styling Tokens
-    from themes import THEMES, get_theme
-    app_theme_id = merged_prefs.get("app_theme_id")
+    from themes import get_email_theme
+    app_theme_id = merged_prefs.get("app_theme_id", "midnight_gamer")
+    eth = get_email_theme(theme_name, app_theme_id)
 
-    if (theme_name == "Use application theme" or theme_name in THEMES) and (app_theme_id or theme_name in THEMES):
-        target_id = app_theme_id if theme_name == "Use application theme" else theme_name
-        t = get_theme(target_id)
-        bg_body = "#0d121f" if "Midnight" in t["name"] else t.get("bg_container", "#0d121f")
-        bg_container = t.get("bg_sidebar", "#090d16")
-        bg_card = t.get("bg_container", "#121827")
-        border_col = t.get("border_color", "#1f293d")
-        text_title = t.get("text_primary", "#f8fafc")
-        text_body = t.get("text_primary", "#cbd5e1")
-        text_muted = t.get("text_secondary", "#94a3b8")
-        accent_col = t.get("accent_color", "#6366f1")
-        sale_green = t.get("sale_color", "#4ade80")
-        sale_bg = t.get("sale_bg", "rgba(74, 222, 128, 0.12)")
-        btn_bg = t.get("btn_primary_bg", "#4f46e5")
-        btn_text = t.get("btn_primary_text", "#ffffff")
-    elif theme_name == "Minimal":
-        bg_body = "#ffffff"
-        bg_container = "#f8fafc"
-        bg_card = "#ffffff"
-        border_col = "#e2e8f0"
-        text_title = "#0f172a"
-        text_body = "#334155"
-        text_muted = "#64748b"
-        accent_col = "#2563eb"
-        sale_green = "#16a34a"
-        sale_bg = "#f0fdf4"
-        btn_bg = "#2563eb"
-        btn_text = "#ffffff"
-    elif theme_name == "Aurora":
-        bg_body = "#090d16"
-        bg_container = "#131b2e"
-        bg_card = "#1a253d"
-        border_col = "rgba(139, 92, 246, 0.25)"
-        text_title = "#f8fafc"
-        text_body = "#cbd5e1"
-        text_muted = "#94a3b8"
-        accent_col = "#8b5cf6"
-        sale_green = "#22c55e"
-        sale_bg = "rgba(34, 197, 94, 0.15)"
-        btn_bg = "#7c3aed"
-        btn_text = "#ffffff"
-    else:  # Midnight (Default)
-        bg_body = "#0d121f"
-        bg_container = "#121827"
-        bg_card = "#1a2238"
-        border_col = "#1f293d"
-        text_title = "#f8fafc"
-        text_body = "#cbd5e1"
-        text_muted = "#94a3b8"
-        accent_col = "#6366f1"
-        sale_green = "#4ade80"
-        sale_bg = "rgba(74, 222, 128, 0.12)"
-        btn_bg = "#4f46e5"
-        btn_text = "#ffffff"
+    bg_body = eth["bg_body"]
+    bg_container = eth["bg_container"]
+    bg_card = eth["bg_card"]
+    bg_card_elevated = eth["bg_card_elevated"]
+    border_col = eth["border_color"]
+    border_subtle = eth["border_subtle"]
+    text_title = eth["text_primary"]
+    text_body = eth["text_secondary"]
+    text_muted = eth["text_muted"]
+    accent_col = eth["accent"]
+    sale_green = eth["sale_color"]
+    sale_bg = eth["sale_bg"]
+    btn_bg = eth["btn_bg"]
+    btn_text = eth["btn_text"]
 
     # Filter Games
     if mode == "selected" and selected_ids:
@@ -777,7 +738,7 @@ def build_daily_report(games: list[dict], history: dict, prefs: Optional[dict] =
     # Section 4: ⚖️ STEAM VS EPIC COMPARISON
     comparison_html = ""
     if enabled.get("store_comparison", True):
-        comp_content = _cross_store_deals_section(report_games)
+        comp_content = _cross_store_deals_section(report_games, eth)
         if "No games tracked" not in comp_content:
             comparison_html = f"""<tr><td style="padding-bottom:20px;">
 <h2 style="color:{text_title};font-size:16px;font-weight:700;margin:0 0 12px 0;">⚖️ STEAM VS EPIC COMPARISON</h2>
