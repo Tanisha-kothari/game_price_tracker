@@ -54,8 +54,8 @@ CUSTOM_CSS = """
     }
 
     .stApp, [data-testid="stAppViewContainer"], .stAppViewContainer, section.main, .main, [data-testid="stMain"], div[data-testid="stAppViewMain"] {
-        background: var(--theme-bg-body, #1e293b) !important;
-        color: var(--theme-text-primary, #e2e8f0) !important;
+        background: var(--theme-bg-body) !important;
+        color: var(--theme-text-primary) !important;
         font-family: var(--theme-font-family, 'Inter', -apple-system, sans-serif) !important;
     }
 
@@ -72,35 +72,40 @@ CUSTOM_CSS = """
         z-index: 100 !important;
     }
     button[data-testid="stSidebarCollapseButton"], button[data-testid="baseButton-headerNoPadding"] {
-        color: var(--theme-text-muted, #94a3b8) !important;
-        background: var(--theme-bg-card, #121827) !important;
-        border: 1px solid var(--theme-border-color, #1f293d) !important;
+        color: var(--theme-text-muted) !important;
+        background: var(--theme-bg-card) !important;
+        border: 1px solid var(--theme-border-color) !important;
         border-radius: var(--theme-button-radius, 6px) !important;
     }
     button[data-testid="stSidebarCollapseButton"]:hover {
-        color: var(--theme-text-primary, #f8fafc) !important;
-        background: var(--theme-bg-card-elevated, #1a2238) !important;
+        color: var(--theme-text-primary) !important;
+        background: var(--theme-bg-card-elevated) !important;
     }
 
-    h1, h2, h3, h4, h5, h6 {
-        color: var(--theme-text-primary, #f8fafc) !important;
+    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 {
+        color: var(--theme-text-primary) !important;
         font-family: var(--theme-font-family, 'Inter', sans-serif) !important;
         font-weight: 700 !important;
         letter-spacing: -0.02em;
         margin: 0 0 0.5rem 0;
     }
 
+    /* ── Streamlit Markdown Paragraphs & Labels ─────────────── */
+    .stMarkdown p, .stMarkdown li, [data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li {
+        color: var(--theme-text-secondary);
+    }
+
     /* ── Persistent Left Sidebar Navigation ─────────────────── */
     section[data-testid="stSidebar"] {
-        background-color: var(--theme-bg-sidebar, #0d121f) !important;
-        border-right: 1px solid var(--theme-border-color, #1a2337) !important;
+        background-color: var(--theme-bg-sidebar) !important;
+        border-right: 1px solid var(--theme-border-color) !important;
         min-width: 230px !important;
         max-width: 250px !important;
         width: 240px !important;
         flex-shrink: 0 !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stSidebarContent"] {
-        background-color: var(--theme-bg-sidebar, #0d121f) !important;
+        background-color: var(--theme-bg-sidebar) !important;
         padding: 1.1rem 0.85rem !important;
     }
     section[data-testid="stSidebar"] .block-container {
@@ -114,7 +119,7 @@ CUSTOM_CSS = """
         gap: 10px;
         padding: 2px 4px 12px;
         margin-bottom: 10px;
-        border-bottom: 1px solid var(--theme-border-subtle, #1a2337);
+        border-bottom: 1px solid var(--theme-border-subtle);
     }
     .sidebar-brand-icon {
         font-size: 22px;
@@ -127,13 +132,13 @@ CUSTOM_CSS = """
     .sidebar-brand-title {
         font-size: 17px;
         font-weight: 800;
-        color: var(--theme-text-primary, #f8fafc);
+        color: var(--theme-text-primary) !important;
         font-family: var(--theme-font-family, 'Inter', sans-serif);
         letter-spacing: -0.03em;
     }
     .sidebar-brand-subtitle {
         font-size: 11px;
-        color: var(--theme-text-muted, #64748b);
+        color: var(--theme-text-muted) !important;
         font-weight: 500;
     }
 
@@ -150,7 +155,7 @@ CUSTOM_CSS = """
         border: 1px solid transparent;
         border-radius: var(--theme-button-radius, 8px);
         padding: 9px 12px;
-        color: var(--theme-text-secondary, #94a3b8);
+        color: var(--theme-text-secondary) !important;
         font-weight: 500;
         font-size: 13.5px;
         cursor: pointer;
@@ -161,16 +166,16 @@ CUSTOM_CSS = """
         transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {
-        background: var(--theme-bg-card-elevated, #151c2e);
-        color: var(--theme-text-primary, #f8fafc);
-        border-color: var(--theme-border-subtle, #1a2337);
+        background: var(--theme-bg-card-elevated) !important;
+        color: var(--theme-text-primary) !important;
+        border-color: var(--theme-border-subtle) !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {
-        background: var(--theme-bg-card-elevated, #1a2238);
-        border-color: var(--theme-accent-primary, #4f46e5);
-        color: var(--theme-text-primary, #f8fafc);
+        background: var(--theme-bg-card-elevated) !important;
+        border-color: var(--theme-accent-primary) !important;
+        color: var(--theme-text-primary) !important;
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        box-shadow: var(--theme-shadow-card) !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stRadio"] label > div:first-child {
         display: none !important;
@@ -188,36 +193,78 @@ CUSTOM_CSS = """
     }
 
     .sidebar-status-card {
-        background: var(--theme-bg-card, #121827);
-        border: 1px solid var(--theme-border-color, #1a2337);
-        border-radius: var(--theme-card-radius, 8px);
+        background: var(--theme-bg-card) !important;
+        border: 1px solid var(--theme-border-color) !important;
+        border-radius: var(--theme-card-radius, 8px) !important;
         padding: 10px 12px;
         margin-top: 20px;
     }
 
-    /* ── Form Inputs ────────────────────────────────────────── */
-    .stTextInput input, .stNumberInput input {
-        background: var(--theme-bg-input, #121827) !important;
-        color: var(--theme-text-primary, #f8fafc) !important;
-        border: 1px solid var(--theme-border-color, #1f293d) !important;
+    /* ── Form Inputs & Widgets ──────────────────────────────── */
+    .stTextInput input, .stNumberInput input, .stTextArea textarea {
+        background: var(--theme-bg-input) !important;
+        color: var(--theme-text-primary) !important;
+        border: 1px solid var(--theme-border-color) !important;
         border-radius: var(--theme-input-radius, 8px) !important;
         padding: 10px 14px !important;
         font-size: 14px !important;
         transition: all 0.2s ease;
     }
-    .stTextInput input:focus, .stNumberInput input:focus {
-        background: var(--theme-bg-input, #182035) !important;
-        border-color: var(--theme-accent-primary, #6366f1) !important;
-        box-shadow: 0 0 0 3px var(--theme-accent-bg, rgba(99, 102, 241, 0.2)) !important;
+    .stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus {
+        border-color: var(--theme-accent-primary) !important;
+        box-shadow: 0 0 0 3px var(--theme-accent-bg) !important;
     }
-    .stTextInput input::placeholder { color: var(--theme-text-muted, #64748b); }
+    .stTextInput input::placeholder, .stTextArea textarea::placeholder { color: var(--theme-text-muted) !important; }
 
+    /* BaseWeb Selects & Multiselects */
     div[data-baseweb="select"] > div {
-        background-color: var(--theme-bg-input, #121827) !important;
-        border: 1px solid var(--theme-border-color, #1f293d) !important;
+        background-color: var(--theme-bg-input) !important;
+        border: 1px solid var(--theme-border-color) !important;
         border-radius: var(--theme-input-radius, 8px) !important;
-        color: var(--theme-text-primary, #f8fafc) !important;
+        color: var(--theme-text-primary) !important;
         font-size: 13px !important;
+    }
+    div[data-baseweb="select"] span {
+        color: var(--theme-text-primary) !important;
+    }
+
+    /* Multiselect Tags / Pills */
+    [data-baseweb="tag"], span[data-baseweb="tag"] {
+        background: var(--theme-bg-card-elevated) !important;
+        border: 1px solid var(--theme-border-color) !important;
+        color: var(--theme-text-primary) !important;
+        border-radius: var(--theme-button-radius, 6px) !important;
+    }
+    [data-baseweb="tag"] span, span[data-baseweb="tag"] span {
+        color: var(--theme-text-primary) !important;
+    }
+    [data-baseweb="tag"] [data-role="remove"] {
+        color: var(--theme-text-muted) !important;
+    }
+
+    /* Dropdown Menus & Popovers */
+    [data-baseweb="popover"], [data-baseweb="menu"], ul[role="listbox"] {
+        background-color: var(--theme-bg-input) !important;
+        border: 1px solid var(--theme-border-color) !important;
+        box-shadow: var(--theme-shadow-card) !important;
+    }
+    [data-baseweb="option"], li[role="option"] {
+        background-color: var(--theme-bg-input) !important;
+        color: var(--theme-text-primary) !important;
+    }
+    [data-baseweb="option"]:hover, [data-baseweb="option"][aria-selected="true"], li[role="option"]:hover {
+        background-color: var(--theme-bg-card-elevated) !important;
+        color: var(--theme-text-primary) !important;
+    }
+
+    /* Streamlit Expanders, Checkboxes, Radios */
+    [data-testid="stExpander"], div[data-testid="stExpanderDetails"] {
+        background-color: var(--theme-bg-card) !important;
+        border-color: var(--theme-border-color) !important;
+        color: var(--theme-text-primary) !important;
+    }
+    [data-testid="stExpanderSummary"] span, [data-testid="stExpanderSummary"] p {
+        color: var(--theme-text-primary) !important;
     }
 
     /* ── Non-Wrapping Buttons ───────────────────────────────── */
@@ -900,20 +947,20 @@ def render_search_result_card(
     if "steam" in store_results:
         availability.append('<span style="color:#66c0f4;font-weight:600;">Steam</span>')
     if "epic" in store_results:
-        availability.append('<span style="color:#f8fafc;font-weight:600;">Epic Games</span>')
+        availability.append('<span style="color:var(--theme-text-primary);font-weight:600;">Epic Games</span>')
     if "gog" in store_results:
         availability.append('<span style="color:#d2b48c;font-weight:600;">GOG</span>')
-    avail_html = '<span style="color:#64748b;margin-right:4px;">Available on:</span> ' + " · ".join(availability)
+    avail_html = '<span style="color:var(--theme-text-muted);margin-right:4px;">Available on:</span> ' + " · ".join(availability)
 
     store_rows_html = ""
     for store, result in store_results.items():
         price_display = format_price(result.current_price, result.currency)
         discount = result.discount_percent or 0
-        sale_cls = " style=\"color:#4ade80;font-weight:700;\"" if discount > 0 else ""
+        sale_cls = " style=\"color:var(--theme-sale);font-weight:700;\"" if discount > 0 else ""
         discount_html = f'<span class="disc-tag">-{discount}%</span>' if discount > 0 else ""
         store_rows_html += (
-            f'<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #1a2337;font-size:13px;">'
-            f'<span style="font-weight:600;color:#94a3b8;">{STORE_LABELS.get(store, store)}</span>'
+            f'<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--theme-border-subtle);font-size:13px;">'
+            f'<span style="font-weight:600;color:var(--theme-text-muted);">{STORE_LABELS.get(store, store)}</span>'
             f'<span{sale_cls}>{price_display}{discount_html}</span>'
             f'</div>'
         )
@@ -921,7 +968,7 @@ def render_search_result_card(
     cover_html = (
         f'<div class="card-art-wrap"><img src="{cover}" alt="{agg.canonical_name}" class="card-art-img"></div>'
         if cover else
-        '<div class="card-art-wrap" style="background:#0b0f19;"></div>'
+        '<div class="card-art-wrap" style="background:var(--theme-bg-sidebar);"></div>'
     )
 
     st.markdown(
@@ -929,8 +976,8 @@ def render_search_result_card(
         f'<div class="card-layout-flex">'
         f'<div class="card-art-col">{cover_html}</div>'
         f'<div class="card-info-col">'
-        f'<div style="font-size:16px;font-weight:700;color:#f8fafc;margin-bottom:4px;">{agg.canonical_name}</div>'
-        f'<div style="font-size:11px;color:#94a3b8;margin-bottom:10px;">{avail_html}</div>'
+        f'<div style="font-size:16px;font-weight:700;color:var(--theme-text-primary);margin-bottom:4px;">{agg.canonical_name}</div>'
+        f'<div style="font-size:11px;color:var(--theme-text-muted);margin-bottom:10px;">{avail_html}</div>'
         f'{store_rows_html}'
         f'</div>'
         f'</div>'
@@ -946,7 +993,7 @@ def render_search_result_card(
                 label = STORE_LABELS.get(store, store)
                 if store in tracked_stores:
                     st.markdown(
-                        f'<div style="color:#4ade80;font-size:12px;font-weight:600;padding:8px 0;">✓ Already tracking on {label}</div>',
+                        f'<div style="color:var(--theme-sale);font-size:12px;font-weight:600;padding:8px 0;">✓ Already tracking on {label}</div>',
                         unsafe_allow_html=True,
                     )
                 else:
@@ -1050,7 +1097,7 @@ def render_game_card(
     cover_html = (
         f'<div class="card-art-wrap"><img src="{cover}" alt="{name}" class="card-art-img"></div>'
         if cover else
-        '<div class="card-art-wrap" style="background:#0b0f19;"></div>'
+        '<div class="card-art-wrap" style="background:var(--theme-bg-sidebar);"></div>'
     )
 
     stores_badges = " ".join(render_store_tag(g["store"]) for g in listings)
@@ -1075,17 +1122,17 @@ def render_game_card(
         target_str = ""
         if target_val is not None:
             target_met = is_target_met(current, currency, target_val, get_price_currency(g, "target_price"))
-            color = "#4ade80" if target_met else "#94a3b8"
+            color = "var(--theme-sale)" if target_met else "var(--theme-text-muted)"
             target_str = f' · Target: <span style="color:{color};font-weight:600;">{format_price(target_val, get_price_currency(g, "target_price"))}</span>'
 
         middle_html = (
             f'<div style="display:flex;align-items:baseline;gap:20px;margin:10px 0 6px;">'
-            f'<div><span style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;">Price</span><br>'
-            f'<span style="font-size:20px;font-weight:800;color:{"#4ade80" if is_sale else "#f8fafc"};">{price_disp}{orig_html}{disc_html}</span></div>'
-            f'<div><span style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;">Lowest Recorded</span><br>'
-            f'<span style="font-size:15px;font-weight:600;color:#94a3b8;">{format_price(lowest, lowest_curr)}</span></div>'
+            f'<div><span style="font-size:11px;color:var(--theme-text-muted);text-transform:uppercase;font-weight:600;">Price</span><br>'
+            f'<span style="font-size:20px;font-weight:800;color:{"var(--theme-sale)" if is_sale else "var(--theme-text-primary)"};">{price_disp}{orig_html}{disc_html}</span></div>'
+            f'<div><span style="font-size:11px;color:var(--theme-text-muted);text-transform:uppercase;font-weight:600;">Lowest Recorded</span><br>'
+            f'<span style="font-size:15px;font-weight:600;color:var(--theme-text-secondary);">{format_price(lowest, lowest_curr)}</span></div>'
             f'</div>'
-            f'<div style="font-size:12px;color:#64748b;margin-bottom:8px;">Checked: {last_checked}{target_str}</div>'
+            f'<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:8px;">Checked: {last_checked}{target_str}</div>'
         )
 
     # Sparkline chart
@@ -1102,9 +1149,9 @@ def render_game_card(
 
     tag_pills_html = ""
     for st_t in sorted(list(all_store_tags))[:4]:
-        tag_pills_html += f'<span style="display:inline-block;background:#171e2e;border:1px solid #232d42;color:#94a3b8;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;margin-right:4px;margin-top:4px;">{st_t}</span>'
+        tag_pills_html += f'<span style="display:inline-block;background:var(--theme-bg-card-elevated);border:1px solid var(--theme-border-color);color:var(--theme-text-muted);font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;margin-right:4px;margin-top:4px;">{st_t}</span>'
     for ct_t in sorted(list(all_custom_tags)):
-        tag_pills_html += f'<span style="display:inline-block;background:rgba(79,70,229,0.18);border:1px solid rgba(99,102,241,0.45);color:#a5b4fc;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:4px;margin-top:4px;">🏷️ {ct_t}</span>'
+        tag_pills_html += f'<span style="display:inline-block;background:var(--theme-accent-bg);border:1px solid var(--theme-accent-primary);color:var(--theme-accent-primary);font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-right:4px;margin-top:4px;">🏷️ {ct_t}</span>'
 
     tags_row_html = f'<div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;">{tag_pills_html}</div>' if tag_pills_html else ""
 
@@ -1343,15 +1390,15 @@ def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
         f'<div class="sum-card"><div class="sum-icon">🎮</div><div class="sum-info"><div class="sum-label">Tracked Games</div><div class="sum-val">{unique_games}</div></div></div>'
         f'<div class="sum-card"><div class="sum-icon">🔥</div><div class="sum-info"><div class="sum-label">On Sale</div><div class="sum-val sale">{len(on_sale_games)}</div></div></div>'
         f'<div class="sum-card"><div class="sum-icon" style="color:#66c0f4;">●</div><div class="sum-info"><div class="sum-label">Steam</div><div class="sum-val">{store_stats["steam"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:#f8fafc;">●</div><div class="sum-info"><div class="sum-label">Epic Games</div><div class="sum-val">{store_stats["epic"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:#818cf8;">✨</div><div class="sum-info"><div class="sum-label">Both Stores</div><div class="sum-val accent">{store_stats["both"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:#94a3b8;">⏱️</div><div class="sum-info"><div class="sum-label">Last Synced</div><div class="sum-val" style="font-size:15px;color:#94a3b8;">{last_sync}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-primary);">●</div><div class="sum-info"><div class="sum-label">Epic Games</div><div class="sum-val">{store_stats["epic"]}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-accent-primary);">✨</div><div class="sum-info"><div class="sum-label">Both Stores</div><div class="sum-val accent">{store_stats["both"]}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-muted);">⏱️</div><div class="sum-info"><div class="sum-label">Last Synced</div><div class="sum-val" style="font-size:15px;color:var(--theme-text-muted);">{last_sync}</div></div></div>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
     # Primary Search Box on Dashboard
-    st.markdown('<div class="search-hero-box"><div style="font-size:16px;font-weight:700;color:#f8fafc;margin-bottom:10px;">🔍 Search & Track Games Across Stores</div>', unsafe_allow_html=True)
+    st.markdown('<div class="search-hero-box"><div style="font-size:16px;font-weight:700;color:var(--theme-text-primary);margin-bottom:10px;">🔍 Search & Track Games Across Stores</div>', unsafe_allow_html=True)
     s_col, btn_col = st.columns([4, 1.2])
     with s_col:
         dash_search_query = st.text_input(
@@ -1375,12 +1422,12 @@ def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
 
     dash_results: list[AggregatedGame] = st.session_state.get("search_results", [])
     if dash_results:
-        st.markdown(f'<div style="font-size:15px;font-weight:700;color:#f8fafc;margin:16px 0 10px;">Results for "{st.session_state.get("last_searched_query", "")}"</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 10px;">Results for "{st.session_state.get("last_searched_query", "")}"</div>', unsafe_allow_html=True)
         for agg in dash_results:
             render_search_result_card(agg, games, gh, "All")
 
     with st.expander("Can't find your game? Add a store URL manually", expanded=False):
-        st.markdown('<div style="font-size:13px;color:#94a3b8;margin-bottom:8px;">Paste a direct Steam, Epic Games, or GOG store URL:</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:13px;color:var(--theme-text-muted);margin-bottom:8px;">Paste a direct Steam, Epic Games, or GOG store URL:</div>', unsafe_allow_html=True)
         url_c, pr_c, add_c = st.columns([3.2, 1, 1.2])
         with url_c:
             m_url = st.text_input("Store URL input", placeholder="https://store.steampowered.com/app/...", label_visibility="collapsed", key="dash_manual_url")
@@ -1393,7 +1440,7 @@ def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Top Active Deals Preview
-    st.markdown('<div style="font-size:17px;font-weight:800;color:#f8fafc;margin:24px 0 12px;">🔥 Top Active Deals</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:17px;font-weight:800;color:var(--theme-text-primary);margin:24px 0 12px;">🔥 Top Active Deals</div>', unsafe_allow_html=True)
     if on_sale_games:
         grouped = group_games_by_identity(on_sale_games)
         for gid, listings in list(grouped.items())[:3]:
@@ -1404,7 +1451,7 @@ def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
 
 # ── View 2: 🔍 Search Games ──────────────────────────────────────────
 def render_search_view(games: list[dict], gh: GitHubManager):
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:12px;">🔍 Search & Add Games</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin-bottom:12px;">🔍 Search & Add Games</div>', unsafe_allow_html=True)
     st.markdown('<div class="search-hero-box">', unsafe_allow_html=True)
     s_col, btn_col = st.columns([4, 1.2])
     with s_col:
@@ -1436,7 +1483,7 @@ def render_search_view(games: list[dict], gh: GitHubManager):
                 st.error("Search failed. Please try again.")
 
     with st.expander("Can't find your game? Add a store URL manually", expanded=False):
-        st.markdown('<div style="font-size:13px;color:#94a3b8;margin-bottom:8px;">Paste a direct Steam, Epic Games, or GOG product URL:</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:13px;color:var(--theme-text-muted);margin-bottom:8px;">Paste a direct Steam, Epic Games, or GOG product URL:</div>', unsafe_allow_html=True)
         url_col, price_col, add_btn_col = st.columns([3.2, 1, 1.2])
         with url_col:
             game_url = st.text_input("Game URL input", placeholder="https://store.steampowered.com/app/...", label_visibility="collapsed", key="add_game_url_search_page")
@@ -1451,7 +1498,7 @@ def render_search_view(games: list[dict], gh: GitHubManager):
     results: list[AggregatedGame] = st.session_state.get("search_results", [])
     last_query = st.session_state.get("last_searched_query", "")
     if results:
-        st.markdown(f'<div style="font-size:15px;font-weight:700;color:#f8fafc;margin:18px 0 10px;">Results for "{last_query}" ({len(results)})</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin:18px 0 10px;">Results for "{last_query}" ({len(results)})</div>', unsafe_allow_html=True)
         for agg in results:
             render_search_result_card(agg, games, gh, search_store_filter)
     elif last_query and search_clicked:
@@ -1470,9 +1517,9 @@ def render_tracked_games_view(games: list[dict], history: dict, gh: GitHubManage
         f'<div class="sum-card"><div class="sum-icon">🎮</div><div class="sum-info"><div class="sum-label">Tracked Games</div><div class="sum-val">{unique_games}</div></div></div>'
         f'<div class="sum-card"><div class="sum-icon">🔥</div><div class="sum-info"><div class="sum-label">On Sale</div><div class="sum-val sale">{len(on_sale_games)}</div></div></div>'
         f'<div class="sum-card"><div class="sum-icon" style="color:#66c0f4;">●</div><div class="sum-info"><div class="sum-label">Steam</div><div class="sum-val">{store_stats["steam"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:#f8fafc;">●</div><div class="sum-info"><div class="sum-label">Epic Games</div><div class="sum-val">{store_stats["epic"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:#818cf8;">✨</div><div class="sum-info"><div class="sum-label">Both Stores</div><div class="sum-val accent">{store_stats["both"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:#94a3b8;">⏱️</div><div class="sum-info"><div class="sum-label">Last Synced</div><div class="sum-val" style="font-size:15px;color:#94a3b8;">{last_sync}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-primary);">●</div><div class="sum-info"><div class="sum-label">Epic Games</div><div class="sum-val">{store_stats["epic"]}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-accent-primary);">✨</div><div class="sum-info"><div class="sum-label">Both Stores</div><div class="sum-val accent">{store_stats["both"]}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-muted);">⏱️</div><div class="sum-info"><div class="sum-label">Last Synced</div><div class="sum-val" style="font-size:15px;color:var(--theme-text-muted);">{last_sync}</div></div></div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -1516,7 +1563,7 @@ def render_tracked_games_view(games: list[dict], history: dict, gh: GitHubManage
 
     tag_filter_choice = "All"
     if len(all_tags) > 1:
-        st.markdown('<div style="font-size:12px;color:#94a3b8;margin:10px 0 4px;font-weight:600;">Filter by Tag / Category:</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:12px;color:var(--theme-text-muted);margin:10px 0 4px;font-weight:600;">Filter by Tag / Category:</div>', unsafe_allow_html=True)
         tag_filter_choice = st.radio(
             "Filter games by tag / category",
             all_tags,
@@ -1560,9 +1607,9 @@ def render_tracked_games_view(games: list[dict], history: dict, gh: GitHubManage
 
 
 # ── View 4: 📈 Price History ─────────────────────────────────────────
-def render_history_view(games: list[dict], history: dict):
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:12px;">📈 Price History & Trends</div>', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">View historical price fluctuations and export tracking data.</div>', unsafe_allow_html=True)
+def render_history_view(games: list[dict], history: dict, gh: GitHubManager):
+    st.markdown('<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin-bottom:12px;">📈 Price History & Trends</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:var(--theme-text-muted);margin-bottom:16px;">View historical price fluctuations and export tracking data.</div>', unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -1575,7 +1622,7 @@ def render_history_view(games: list[dict], history: dict):
         if history:
             st.download_button("📈 Export History (CSV)", history_to_csv(history), "history.csv", "text/csv", use_container_width=True)
 
-    st.markdown('<div style="margin-top:24px;font-size:16px;font-weight:700;color:#f8fafc;margin-bottom:10px;">Historical Price Log</div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top:24px;font-size:16px;font-weight:700;color:var(--theme-text-primary);margin-bottom:10px;">Historical Price Log</div>', unsafe_allow_html=True)
     if not games:
         st.markdown('<div class="empty-box"><div class="empty-title">No price history recorded yet</div></div>', unsafe_allow_html=True)
         return
@@ -1588,10 +1635,10 @@ def render_history_view(games: list[dict], history: dict):
         low = format_price(g.get("lowest_price"), get_price_currency(g, "lowest_price"))
         table_rows += (
             f'<tr>'
-            f'<td style="padding:10px 8px;border-bottom:1px solid #1a2337;">{g.get("name", "Unknown")} {render_store_tag(g.get("store", ""))}</td>'
-            f'<td style="padding:10px 8px;border-bottom:1px solid #1a2337;text-align:right;">{cur}</td>'
-            f'<td style="padding:10px 8px;border-bottom:1px solid #1a2337;text-align:right;color:#4ade80;font-weight:600;">{low}</td>'
-            f'<td style="padding:10px 8px;border-bottom:1px solid #1a2337;text-align:center;">{spark}</td>'
+            f'<td style="padding:10px 8px;border-bottom:1px solid var(--theme-border-subtle);">{g.get("name", "Unknown")} {render_store_tag(g.get("store", ""))}</td>'
+            f'<td style="padding:10px 8px;border-bottom:1px solid var(--theme-border-subtle);text-align:right;">{cur}</td>'
+            f'<td style="padding:10px 8px;border-bottom:1px solid var(--theme-border-subtle);text-align:right;color:var(--theme-sale);font-weight:600;">{low}</td>'
+            f'<td style="padding:10px 8px;border-bottom:1px solid var(--theme-border-subtle);text-align:center;">{spark}</td>'
             f'</tr>'
         )
 
@@ -1609,8 +1656,8 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
     priceable = [g for g in games if g.get("current_price") is not None]
     name_to_id = {g["name"]: g["id"] for g in priceable}
 
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">🧮 Smart Calculator</div>', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Calculate, save, and compare optimal combinations of tracked games within your budget.</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin-bottom:8px;">🧮 Smart Calculator</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:var(--theme-text-muted);margin-bottom:16px;">Calculate, save, and compare optimal combinations of tracked games within your budget.</div>', unsafe_allow_html=True)
 
     if "saved_combos" not in st.session_state:
         st.session_state.saved_combos = load_saved_combos_data(gh)
@@ -1620,21 +1667,21 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
         st.markdown('<div class="empty-box"><div class="empty-icon">🛒</div><div class="empty-title">No priced games available</div><div class="empty-sub">Track games first to calculate your budget combinations.</div></div>', unsafe_allow_html=True)
         return
 
-    st.markdown('<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:18px;margin-bottom:20px;">', unsafe_allow_html=True)
+    st.markdown('<div style="background:var(--theme-bg-card);border:1px solid var(--theme-border-color);border-radius:var(--theme-card-radius, 10px);padding:18px;margin-bottom:20px;box-shadow:var(--theme-shadow-card);">', unsafe_allow_html=True)
     bcol, ccol = st.columns(2)
     with bcol:
-        st.markdown('<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Total Budget (₹)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:4px;">Total Budget (₹)</div>', unsafe_allow_html=True)
         budget = st.number_input("Budget in INR", min_value=1, step=100, value=3000, label_visibility="collapsed")
     with ccol:
-        st.markdown('<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Number of Games to Buy</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:4px;">Number of Games to Buy</div>', unsafe_allow_html=True)
         count = st.number_input("Games count", min_value=1, max_value=len(priceable), step=1, value=min(3, len(priceable)), label_visibility="collapsed")
 
     mcol, fcol = st.columns([2, 1.4])
     with mcol:
-        st.markdown('<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Must Include Game (Optional)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:4px;">Must Include Game (Optional)</div>', unsafe_allow_html=True)
         must_names = st.multiselect("Must include games", list(name_to_id.keys()), label_visibility="collapsed")
     with fcol:
-        st.markdown('<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Budget Flexibility</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:4px;">Budget Flexibility</div>', unsafe_allow_html=True)
         flex = st.checkbox("Allow flexible budget (+10%)", value=True)
         flex_pct = 10.0 if flex else 0.0
 
@@ -1694,9 +1741,9 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
         for i, g in enumerate(result.games, start=1):
             p_str = format_price(g.get("current_price"), get_price_currency(g, "current_price"))
             items_html += (
-                f'<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1a2337;font-size:14px;">'
-                f'<span><strong style="color:#64748b;margin-right:8px;">{i}.</strong> {g["name"]} {render_store_tag(g.get("store", ""))}</span>'
-                f'<span style="font-weight:700;color:#f8fafc;">{p_str}</span>'
+                f'<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--theme-border-subtle);font-size:14px;">'
+                f'<span><strong style="color:var(--theme-text-muted);margin-right:8px;">{i}.</strong> {g["name"]} {render_store_tag(g.get("store", ""))}</span>'
+                f'<span style="font-weight:700;color:var(--theme-text-primary);">{p_str}</span>'
                 f'</div>'
             )
 
@@ -1705,8 +1752,8 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
         rem_val = f"+{format_price(result.over_amount, 'INR')}" if over else format_price(result.remaining, "INR")
 
         st.markdown(
-            f'<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:20px;margin-bottom:20px;">'
-            f'<div style="font-size:16px;font-weight:700;color:#f8fafc;margin-bottom:14px;">Generated Game Combination ({len(result.games)} games)</div>'
+            f'<div style="background:var(--theme-bg-card);border:1px solid var(--theme-border-color);border-radius:var(--theme-card-radius, 10px);padding:20px;margin-bottom:20px;box-shadow:var(--theme-shadow-card);">'
+            f'<div style="font-size:16px;font-weight:700;color:var(--theme-text-primary);margin-bottom:14px;">Generated Game Combination ({len(result.games)} games)</div>'
             f'<div class="summary-cards-container">'
             f'<div class="sum-card"><div class="sum-info"><div class="sum-label">Budget</div><div class="sum-val">{format_price(result.budget, "INR")}</div></div></div>'
             f'<div class="sum-card"><div class="sum-info"><div class="sum-label">Total Cost</div><div class="sum-val">{format_price(result.total, "INR")}</div></div></div>'
@@ -1755,7 +1802,7 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
                     st.rerun()
 
     # ── Saved Combinations Section ─────────────────────────────
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin:30px 0 12px;">📁 Saved Combinations</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin:30px 0 12px;">📁 Saved Combinations</div>', unsafe_allow_html=True)
     if not saved_combos:
         st.markdown('<div class="empty-box"><div class="empty-icon">📁</div><div class="empty-title">No saved combinations yet</div><div class="empty-sub">Generate a combination above and click "Save Combination" to compare them later.</div></div>', unsafe_allow_html=True)
         return
@@ -1774,7 +1821,7 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
         combos_to_compare = [c for c in saved_combos if c["id"] in selected_ids]
 
         if len(combos_to_compare) >= 1:
-            st.markdown('<div style="font-size:16px;font-weight:700;color:#f8fafc;margin:16px 0 10px;">⚖️ Side-by-Side Comparison</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-size:16px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 10px;">⚖️ Side-by-Side Comparison</div>', unsafe_allow_html=True)
             min_total = min(c.get("total", float("inf")) for c in combos_to_compare)
 
             comp_cols = st.columns(min(len(combos_to_compare), 4))
@@ -1839,8 +1886,8 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
 # ── View 6: 🔥 Deals ─────────────────────────────────────────────────
 def render_deals_view(games: list[dict], history: dict, gh: GitHubManager):
     on_sale_games = [g for g in games if g.get("is_on_sale")]
-    st.markdown(f'<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">🔥 Active Deals & Sales</div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Currently tracking {len(on_sale_games)} active store discount(s).</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin-bottom:8px;">🔥 Active Deals & Sales</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:14px;color:var(--theme-text-muted);margin-bottom:16px;">Currently tracking {len(on_sale_games)} active store discount(s).</div>', unsafe_allow_html=True)
     if not on_sale_games:
         st.markdown('<div class="empty-box"><div class="empty-icon">🔥</div><div class="empty-title">No active sales right now</div><div class="empty-sub">When games in your tracker go on sale, they will appear here.</div></div>', unsafe_allow_html=True)
         return
@@ -1852,8 +1899,8 @@ def render_deals_view(games: list[dict], history: dict, gh: GitHubManager):
 
 # ── View 7: 📧 Reports & Email Preferences ────────────────────────────
 def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">📧 Daily Price Email & Preferences</div>', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:20px;">Customize your daily email content, theme, filters, and scheduled report preferences.</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin-bottom:8px;">📧 Daily Price Email & Preferences</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:var(--theme-text-muted);margin-bottom:20px;">Customize your daily email content, theme, filters, and scheduled report preferences.</div>', unsafe_allow_html=True)
 
     if "email_prefs" not in st.session_state:
         st.session_state.email_prefs = load_email_prefs_data(gh)
@@ -1861,7 +1908,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
     prefs = st.session_state.email_prefs
 
     with st.expander("⚙️ Email Configuration & Content Preferences", expanded=True):
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:12px;">1. Email Recipient</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin-bottom:12px;">1. Email Recipient</div>', unsafe_allow_html=True)
         recipient = st.text_input(
             "Recipient Email Address:",
             value=prefs.get("recipient_email", ""),
@@ -1869,7 +1916,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
             help="Leave blank to use default configured EMAIL_ADDRESS environment secret.",
         )
 
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">2. Games to Include</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 8px;">2. Games to Include</div>', unsafe_allow_html=True)
         mode_opts = ["All tracked games", "Selected games", "Games with selected tags"]
         curr_mode = prefs.get("games_selection_mode", "all")
         mode_idx = 0
@@ -1903,7 +1950,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
         if games_selection_mode == "tags":
             selected_tags = st.multiselect("Select tags to include in daily email:", options=all_tags, default=[t for t in selected_tags if t in all_tags])
 
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">3. Email Content Options</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 8px;">3. Email Content Options</div>', unsafe_allow_html=True)
         enabled = prefs.get("enabled_content", {})
         c1, c2 = st.columns(2)
         with c1:
@@ -1928,7 +1975,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
             "lowest_price_alerts": chk_lowest_alerts,
         }
 
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">4. Visual Theme & Header</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 8px;">4. Visual Theme & Header</div>', unsafe_allow_html=True)
         th_col1, th_col2 = st.columns(2)
         with th_col1:
             theme_opts = ["Use application theme", "Midnight", "Aurora", "Minimal"] + [t["name"] for t in THEMES.values()]
@@ -1938,7 +1985,7 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
         with th_col2:
             report_title = st.text_input("Report Title:", value=prefs.get("report_title", "🎮 Daily Game Drop"))
 
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:16px 0 8px;">5. Featured Game & Schedule</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 8px;">5. Featured Game & Schedule</div>', unsafe_allow_html=True)
         feat_col1, feat_col2 = st.columns(2)
         with feat_col1:
             feat_opts = ["None"] + list(game_title_map.keys())
@@ -2027,15 +2074,15 @@ def render_reports_view(games: list[dict], history: dict, gh: GitHubManager):
         with btn_col3:
             show_preview = st.button("👀 Preview Email", type="secondary", use_container_width=True)
 
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#f8fafc;margin:24px 0 12px;">Live Email Preview</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:16px;font-weight:700;color:var(--theme-text-primary);margin:24px 0 12px;">Live Email Preview</div>', unsafe_allow_html=True)
     report_html = build_daily_report(games, history, prefs=current_form_prefs)
     st.components.v1.html(report_html, height=750, scrolling=True)
 
 
 # ── View 8: ⚙️ Settings ──────────────────────────────────────────────
 def render_settings_view(games: list[dict], gh: GitHubManager):
-    st.markdown('<div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">⚙️ Settings & Customization</div>', unsafe_allow_html=True)
-    st.markdown('<div style="font-size:14px;color:#94a3b8;margin-bottom:20px;">Global theme design system, UI personality layer, and GitHub persistence.</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin-bottom:8px;">⚙️ Settings & Customization</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:var(--theme-text-muted);margin-bottom:20px;">Global theme design system, UI personality layer, and GitHub persistence.</div>', unsafe_allow_html=True)
 
     if "theme_settings" not in st.session_state:
         st.session_state.theme_settings = load_theme_settings_data(gh)
@@ -2214,7 +2261,7 @@ def main():
     tb_col1, tb_col2 = st.columns([3.5, 1.4])
     with tb_col1:
         st.markdown(
-            f'<div style="font-size:22px;font-weight:800;color:#f8fafc;letter-spacing:-0.02em;">{nav_choice}</div>',
+            f'<div style="font-size:22px;font-weight:800;color:var(--theme-text-primary);letter-spacing:-0.02em;">{nav_choice}</div>',
             unsafe_allow_html=True,
         )
     with tb_col2:
