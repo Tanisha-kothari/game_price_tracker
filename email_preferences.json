@@ -2,8 +2,8 @@
   "recipient_email": "",
   "games_selection_mode": "selected",
   "selected_game_ids": [
-    "dayz",
-    "the-elder-scrolls-v-skyrim"
+    "the-elder-scrolls-v-skyrim",
+    "dayz"
   ],
   "selected_tags": [],
   "enabled_content": {
@@ -16,7 +16,8 @@
     "new_sales": false,
     "lowest_price_alerts": false
   },
-  "theme": "Minimal",
+  "theme": "Use application theme",
+  "app_theme_id": "alchemist",
   "featured_game_id": "dayz",
   "report_title": "🎮 Daily Game Drop",
   "send_time": "11:05"
