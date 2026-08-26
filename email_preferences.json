@@ -18,7 +18,7 @@
   },
   "theme": "Use application theme",
   "app_theme_id": "alchemist",
-  "featured_game_id": "dayz",
+  "featured_game_id": null,
   "report_title": "🎮 Daily Game Drop",
   "send_time": "11:05"
 }
