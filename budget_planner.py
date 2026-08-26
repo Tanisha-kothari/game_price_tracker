@@ -74,6 +74,7 @@ class PlanResult:
     remaining: float          # allowed - total (negative => over budget)
     is_over_budget: bool
     combos_count: int         # total number of valid combinations that exist
+    is_flexible: bool = False
 
     @property
     def over_amount(self) -> float:
@@ -263,6 +264,7 @@ class BudgetPlanner:
             remaining=remaining,
             is_over_budget=remaining < -_EPS,
             combos_count=len(self._combos),
+            is_flexible=self.options.flex_pct > 0.0,
         )
 
 

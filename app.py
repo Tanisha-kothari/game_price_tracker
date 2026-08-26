@@ -31,6 +31,7 @@ from github_manager import GitHubManager
 from scheduler import start_daily_report_scheduler
 from budget_planner import BudgetPlanner, BudgetOptions, BudgetPlannerError, PlanResult, combo_key
 from report import build_daily_report
+from themes import THEMES, PERSONALITY_LEVELS, generate_theme_css, get_theme, get_contextual_message
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("app")
@@ -52,8 +53,8 @@ CUSTOM_CSS = """
         box-sizing: border-box;
     }
 
-    .stApp {
-        background: var(--theme-bg-body, #090d16) !important;
+    .stApp, [data-testid="stAppViewContainer"], .stAppViewContainer, section.main, .main, [data-testid="stMain"], div[data-testid="stAppViewMain"] {
+        background: var(--theme-bg-body, #1e293b) !important;
         color: var(--theme-text-primary, #e2e8f0) !important;
         font-family: var(--theme-font-family, 'Inter', -apple-system, sans-serif) !important;
     }
@@ -62,6 +63,7 @@ CUSTOM_CSS = """
         padding: 1.25rem 2rem 3rem !important;
         max-width: 1280px !important;
         margin: 0 auto;
+        background: transparent !important;
     }
 
     #MainMenu, footer { display: none !important; }
@@ -1785,22 +1787,22 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
                     for g in c.get("games", []):
                         p_str = format_price(g.get("price"), g.get("currency", "INR"))
                         s_tag = render_store_tag(g.get("store", ""))
-                        c_games_html += f'<div style="font-size:12px;padding:6px 0;border-bottom:1px solid #1a2337;display:flex;justify-content:space-between;"><span>{g.get("name")} {s_tag}</span><span style="font-weight:700;color:#f8fafc;">{p_str}</span></div>'
+                        c_games_html += f'<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--theme-border-subtle);display:flex;justify-content:space-between;"><span>{g.get("name")} {s_tag}</span><span style="font-weight:700;color:var(--theme-text-primary);">{p_str}</span></div>'
 
                     st.markdown(
-                        f'<div style="background:#121827;border:1px solid {"#4f46e5" if is_cheapest else "#1f293d"};border-radius:10px;padding:14px;">'
+                        f'<div style="background:var(--theme-bg-card);border:1px solid {"var(--theme-accent-primary)" if is_cheapest else "var(--theme-border-color)"};border-radius:10px;padding:14px;box-shadow:var(--theme-shadow-card);">'
                         f'{cheapest_banner}'
-                        f'<div style="font-size:15px;font-weight:700;color:#f8fafc;margin-bottom:2px;">{c.get("name")}</div>'
-                        f'<div style="font-size:11px;color:#64748b;margin-bottom:10px;">{c.get("created_at")}</div>'
-                        f'<div style="font-size:12px;color:#94a3b8;">Total: <strong style="font-size:17px;color:#4ade80;">{format_price(c.get("total"), "INR")}</strong></div>'
-                        f'<div style="font-size:11px;color:#64748b;margin-bottom:10px;">Budget: {format_price(c.get("budget"), "INR")}</div>'
+                        f'<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin-bottom:2px;">{c.get("name")}</div>'
+                        f'<div style="font-size:11px;color:var(--theme-text-muted);margin-bottom:10px;">{c.get("created_at")}</div>'
+                        f'<div style="font-size:12px;color:var(--theme-text-secondary);">Total: <strong style="font-size:17px;color:var(--theme-sale);">{format_price(c.get("total"), "INR")}</strong></div>'
+                        f'<div style="font-size:11px;color:var(--theme-text-muted);margin-bottom:10px;">Budget: {format_price(c.get("budget"), "INR")}</div>'
                         f'<div>{c_games_html}</div>'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
 
     # Saved combinations list
-    st.markdown('<div style="font-size:15px;font-weight:700;color:#f8fafc;margin:24px 0 10px;">All Saved Combinations</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin:24px 0 10px;">All Saved Combinations</div>', unsafe_allow_html=True)
     for c in saved_combos:
         c_id = c["id"]
         c_name = c.get("name", "Saved Combination")
@@ -1811,15 +1813,15 @@ def render_smart_calculator(games: list[dict], gh: GitHubManager):
         games_list_str = ", ".join(f"{g.get('name')} ({STORE_LABELS.get(g.get('store'), g.get('store'))}: {format_price(g.get('price'), 'INR')})" for g in c.get("games", []))
 
         st.markdown(
-            f'<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:16px;margin-bottom:12px;">'
+            f'<div style="background:var(--theme-bg-card);border:1px solid var(--theme-border-color);border-radius:10px;padding:16px;margin-bottom:12px;box-shadow:var(--theme-shadow-card);">'
             f'<div style="display:flex;justify-content:space-between;align-items:center;">'
             f'<div>'
-            f'<div style="font-size:15px;font-weight:700;color:#f8fafc;">{c_name}</div>'
-            f'<div style="font-size:11px;color:#64748b;">Saved: {c_date} · Budget: {c_bud}</div>'
+            f'<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);">{c_name}</div>'
+            f'<div style="font-size:11px;color:var(--theme-text-muted);">Saved: {c_date} · Budget: {c_bud}</div>'
             f'</div>'
-            f'<div style="font-size:18px;font-weight:800;color:#4ade80;">{c_tot}</div>'
+            f'<div style="font-size:18px;font-weight:800;color:var(--theme-sale);">{c_tot}</div>'
             f'</div>'
-            f'<div style="font-size:13px;color:#cbd5e1;margin-top:10px;line-height:1.5;"><strong>Games ({len(c.get("games", []))}):</strong> {games_list_str}</div>'
+            f'<div style="font-size:13px;color:var(--theme-text-secondary);margin-top:10px;line-height:1.5;"><strong>Games ({len(c.get("games", []))}):</strong> {games_list_str}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -2042,7 +2044,7 @@ def render_settings_view(games: list[dict], gh: GitHubManager):
 
     from themes import THEMES, PERSONALITY_LEVELS
     with st.expander("🎨 Global Theme System & Visual Identity Picker", expanded=True):
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:12px;">Visual Theme Identity Presets:</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin-bottom:12px;">Visual Theme Identity Presets (Light & Dark Modes):</div>', unsafe_allow_html=True)
         curr_id = theme_settings.get("theme_id", "midnight_gamer")
 
         theme_items = list(THEMES.items())
@@ -2052,7 +2054,9 @@ def render_settings_view(games: list[dict], gh: GitHubManager):
             col = cols[i % 3]
             is_active = (tid == curr_id)
             active_border = t["accent_primary"] if is_active else t["border_color"]
-            active_badge = f'<div style="font-size:11px;font-weight:800;color:{t["accent_primary"]};margin-bottom:4px;">✓ ACTIVE THEME</div>' if is_active else '<div style="font-size:11px;color:#64748b;margin-bottom:4px;">PREVIEW</div>'
+            mode_label = "☀️ LIGHT MODE" if t.get("mode") == "light" else "🌙 DARK MODE"
+            mode_badge_style = "color:#ea580c;background:rgba(234,88,12,0.15);" if t.get("mode") == "light" else "color:#a855f7;background:rgba(168,85,247,0.15);"
+            active_badge = f'<div style="font-size:11px;font-weight:800;color:{t["accent_primary"]};margin-bottom:4px;">✓ ACTIVE THEME</div>' if is_active else f'<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;{mode_badge_style}">{mode_label}</div>'
 
             with col:
                 st.markdown(
@@ -2082,7 +2086,7 @@ def render_settings_view(games: list[dict], gh: GitHubManager):
                         st.success(f"✅ Applied {t['name']} theme!")
                         st.rerun()
 
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#f8fafc;margin:20px 0 8px;">Select UI Personality Level:</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:14px;font-weight:700;color:var(--theme-text-primary);margin:20px 0 8px;">Select UI Personality Level:</div>', unsafe_allow_html=True)
         curr_p = theme_settings.get("personality_level", "Subtle")
         p_idx = PERSONALITY_LEVELS.index(curr_p) if curr_p in PERSONALITY_LEVELS else 0
         chosen_personality = st.radio(
@@ -2102,11 +2106,11 @@ def render_settings_view(games: list[dict], gh: GitHubManager):
                 st.success("✅ Personality level saved!")
                 st.rerun()
 
-    st.markdown('<div style="font-size:15px;font-weight:700;color:#f8fafc;margin:24px 0 10px;">GitHub Synchronization</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin:24px 0 10px;">GitHub Synchronization</div>', unsafe_allow_html=True)
     st.markdown(
-        f'<div style="background:#121827;border:1px solid #1f293d;border-radius:10px;padding:20px;">'
-        f'<div style="font-size:15px;font-weight:700;color:#f8fafc;margin-bottom:8px;">GitHub Repository Connection</div>'
-        f'<div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:16px;">'
+        f'<div style="background:var(--theme-bg-card);border:1px solid var(--theme-border-color);border-radius:10px;padding:20px;box-shadow:var(--theme-shadow-card);">'
+        f'<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin-bottom:8px;">GitHub Repository Connection</div>'
+        f'<div style="font-size:13px;color:var(--theme-text-secondary);line-height:1.6;margin-bottom:16px;">'
         f'Owner: <strong>{gh.owner}</strong><br>'
         f'Repository: <strong>{gh.repo}</strong><br>'
         f'Tracked listings file: <strong>games.json</strong><br>'
