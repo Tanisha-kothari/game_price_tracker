@@ -1,0 +1,40 @@
+[
+  {
+    "id": "combo_1788063362_695",
+    "name": "Combo 1",
+    "created_at": "2026-08-30 04:16",
+    "budget": 3000.0,
+    "count": 3,
+    "total": 2978.0,
+    "remaining": 322.00000000000045,
+    "over_amount": 0.0,
+    "is_over_budget": false,
+    "is_flexible": true,
+    "games": [
+      {
+        "id": "steam_1766060",
+        "name": "HumanitZ",
+        "store": "steam",
+        "price": 572.0,
+        "currency": "INR",
+        "url": "https://store.steampowered.com/app/1766060"
+      },
+      {
+        "id": "epic_the-survivalists",
+        "name": "The Survivalists",
+        "store": "epic",
+        "price": 1999.0,
+        "currency": "INR",
+        "url": "https://store.epicgames.com/p/the-survivalists"
+      },
+      {
+        "id": "steam_897450",
+        "name": "The Survivalists",
+        "store": "steam",
+        "price": 407.0,
+        "currency": "INR",
+        "url": "https://store.steampowered.com/app/897450"
+      }
+    ]
+  }
+]
