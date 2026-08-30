@@ -379,5 +379,33 @@
     "cover_image": "",
     "store_tags": [],
     "custom_tags": []
+  },
+  {
+    "id": "steam_1465460",
+    "game_id": "infection-free-zone",
+    "name": "Infection Free Zone",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/1465460",
+    "current_price": 899.0,
+    "current_currency": "INR",
+    "original_price": 899.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "lowest_price": 899.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-08-30",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1465460/30867667e80580bed424dd9d946f1aa7110bf0c0/header.jpg?t=1787926773",
+    "store_tags": [
+      "Action",
+      "Indie",
+      "Simulation",
+      "Strategy",
+      "Early Access"
+    ],
+    "custom_tags": []
   }
 ]
