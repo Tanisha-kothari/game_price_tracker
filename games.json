@@ -521,5 +521,30 @@
     "cover_image": "",
     "store_tags": [],
     "custom_tags": []
+  },
+  {
+    "id": "steam_203160",
+    "game_id": "tomb-raider",
+    "name": "Tomb Raider Game of the Year",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/203160",
+    "current_price": 149.0,
+    "current_currency": "INR",
+    "original_price": 999.0,
+    "discount_percent": 85,
+    "is_on_sale": true,
+    "sale_started": "2026-09-06",
+    "sale_last_seen": "2026-09-06",
+    "sale_end": null,
+    "lowest_price": 149.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-09-06",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/203160/9e67774e97cdd155f287146e62611eb445514ac6/header.jpg?t=1765220424",
+    "store_tags": [
+      "Action",
+      "Adventure"
+    ],
+    "custom_tags": []
   }
 ]
