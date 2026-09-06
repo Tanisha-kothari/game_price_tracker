@@ -590,5 +590,33 @@
     "cover_image": "https://cdn1.epicgames.com/92e8ff0ca9bb421c831dc0f6fc8ef54d/offer/EGS_Calico_PeachyKeenGames_S4-1200x1600-fea0c48d6e8df8f29b11566214ef7000.jpg",
     "store_tags": [],
     "custom_tags": []
+  },
+  {
+    "id": "steam_1084600",
+    "game_id": "my-time-at-sandrock",
+    "name": "My Time at Sandrock",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/1084600/My_Time_at_Sandrock/",
+    "current_price": 569.0,
+    "current_currency": "INR",
+    "original_price": 1899.0,
+    "discount_percent": 70,
+    "is_on_sale": true,
+    "sale_started": "2026-09-06",
+    "sale_last_seen": "2026-09-06",
+    "sale_end": null,
+    "lowest_price": 569.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-09-06",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1084600/header.jpg?t=1788516378",
+    "store_tags": [
+      "Adventure",
+      "Casual",
+      "Indie",
+      "RPG",
+      "Simulation"
+    ],
+    "custom_tags": []
   }
 ]
