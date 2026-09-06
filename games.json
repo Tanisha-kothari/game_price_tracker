@@ -568,5 +568,27 @@
     "cover_image": "https://cdn1.epicgames.com/offer/c4395ba88061417a8ac6bd3fdc7fba79/EGS_PotionPermit_MassHiveMedia_S4_1200x1600-4161e5fa188653819ad50a9e7971acbb",
     "store_tags": [],
     "custom_tags": []
+  },
+  {
+    "id": "epic_calico",
+    "game_id": "calico",
+    "name": "Calico",
+    "store": "epic",
+    "url": "https://store.epicgames.com/p/calico",
+    "current_price": 83.7,
+    "current_currency": "INR",
+    "original_price": 279.0,
+    "discount_percent": 70,
+    "is_on_sale": true,
+    "sale_started": "2026-09-06",
+    "sale_last_seen": "2026-09-06",
+    "sale_end": null,
+    "lowest_price": 83.7,
+    "lowest_currency": "INR",
+    "last_checked": "2026-09-06",
+    "currency": "INR",
+    "cover_image": "https://cdn1.epicgames.com/92e8ff0ca9bb421c831dc0f6fc8ef54d/offer/EGS_Calico_PeachyKeenGames_S4-1200x1600-fea0c48d6e8df8f29b11566214ef7000.jpg",
+    "store_tags": [],
+    "custom_tags": []
   }
 ]
