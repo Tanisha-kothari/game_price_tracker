@@ -596,5 +596,27 @@
     "cover_image": "https://cdn1.epicgames.com/offer/wombat/portrait-wwzaftermath-1200x1600_1200x1600-1c62343365f63ed408e5906b88141d7e",
     "store_tags": [],
     "custom_tags": []
+  },
+  {
+    "id": "epic_world-war-z--base-game",
+    "game_id": "world-war-z",
+    "name": "World War Z",
+    "store": "epic",
+    "url": "https://store.epicgames.com/p/world-war-z--base-game",
+    "current_price": null,
+    "current_currency": "INR",
+    "original_price": null,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "lowest_price": null,
+    "lowest_currency": "INR",
+    "last_checked": "2026-09-07",
+    "currency": "INR",
+    "cover_image": "",
+    "store_tags": [],
+    "custom_tags": []
   }
 ]
