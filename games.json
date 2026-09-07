@@ -479,28 +479,6 @@
     "custom_tags": []
   },
   {
-    "id": "epic_dying-light--definitive-edition",
-    "game_id": "dying-light",
-    "name": "Dying Light Definitive Edition",
-    "store": "epic",
-    "url": "https://store.epicgames.com/p/dying-light--definitive-edition",
-    "current_price": 299.8,
-    "current_currency": "INR",
-    "original_price": 1499.0,
-    "discount_percent": 80,
-    "is_on_sale": true,
-    "sale_started": "2026-09-06",
-    "sale_last_seen": "2026-09-06",
-    "sale_end": null,
-    "lowest_price": 299.8,
-    "lowest_currency": "INR",
-    "last_checked": "2026-09-06",
-    "currency": "INR",
-    "cover_image": "https://cdn2.unrealengine.com/egs-dyinglightdefinitiveedition-techland-editions-s2-1200x1600-65e351989663.jpg",
-    "store_tags": [],
-    "custom_tags": []
-  },
-  {
     "id": "epic_world-war-z--base-game",
     "game_id": "world-war-z",
     "name": "World War Z",
