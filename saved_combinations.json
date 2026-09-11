@@ -1,35 +1,5 @@
 [
   {
-    "id": "combo_1788768501_508",
-    "name": "Combo 5",
-    "created_at": "2026-09-07 08:08",
-    "budget": 326.0,
-    "count": 2,
-    "total": 219.9,
-    "remaining": 106.1,
-    "over_amount": 0.0,
-    "is_over_budget": false,
-    "is_flexible": false,
-    "games": [
-      {
-        "id": "epic_edge-of-eternity",
-        "name": "Edge Of Eternity",
-        "store": "epic",
-        "price": 70.9,
-        "currency": "INR",
-        "url": "https://store.epicgames.com/p/edge-of-eternity"
-      },
-      {
-        "id": "steam_203160",
-        "name": "Tomb Raider Game of the Year",
-        "store": "steam",
-        "price": 149.0,
-        "currency": "INR",
-        "url": "https://store.steampowered.com/app/203160"
-      }
-    ]
-  },
-  {
     "id": "combo_1788768420_175",
     "name": "Combo 2",
     "created_at": "2026-09-07 08:07",
