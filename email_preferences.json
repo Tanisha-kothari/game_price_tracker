@@ -3,7 +3,24 @@
   "games_selection_mode": "selected",
   "selected_game_ids": [
     "the-elder-scrolls-v-skyrim",
-    "dayz"
+    "cyberpunk-2077",
+    "dayz",
+    "7-days-to-die",
+    "no-mans-sky",
+    "humanitz",
+    "the-survivalists",
+    "homeworld-remastered-collection",
+    "state-of-decay-2-juggernaut",
+    "resident-evil-4",
+    "dont-starve-together",
+    "infection-free-zone",
+    "middle-earth-shadow-of-war",
+    "tomb-raider",
+    "edge-of-eternity",
+    "potion-permit",
+    "calico",
+    "my-time-at-sandrock",
+    "world-war-z-aftermath"
   ],
   "selected_tags": [],
   "enabled_content": {
@@ -11,13 +28,13 @@
     "original_price": true,
     "discount_percent": false,
     "lowest_price": false,
-    "price_change": false,
+    "price_change": true,
     "store_comparison": false,
     "new_sales": false,
     "lowest_price_alerts": false
   },
-  "theme": "Use application theme",
-  "app_theme_id": "alchemist",
+  "theme": "Aurora",
+  "app_theme_id": "midnight_gamer",
   "featured_game_id": null,
   "report_title": "🎮 Daily Game Drop",
   "send_time": "11:05"
