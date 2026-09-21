@@ -937,4 +937,157 @@ def dump_theme_settings(settings: dict[str, Any]) -> str:
     return json.dumps(settings, indent=2, ensure_ascii=False)
 
 
+# ── Purchased Games Persistence & Helper Functions ──────────────────────
+
+PURCHASED_GAMES_FILE = "purchased_games.json"
+
+DEFAULT_PURCHASED_GAMES: list[dict[str, Any]] = []
+
+
+def load_purchased_games(content: str) -> list[dict[str, Any]]:
+    if not content or not content.strip():
+        return deepcopy(DEFAULT_PURCHASED_GAMES)
+    try:
+        data = json.loads(content)
+        if isinstance(data, list):
+            valid = []
+            for item in data:
+                if isinstance(item, dict) and item.get("title") and item.get("store"):
+                    entry = {
+                        "id": item.get("id") or f"purchased_{canonical_game_id(item['title'])}_{item['store'].lower()}",
+                        "title": item.get("title", ""),
+                        "store": item.get("store", ""),
+                        "url": item.get("url", ""),
+                        "cover": item.get("cover", item.get("cover_image", "")),
+                        "purchase_date": item.get("purchase_date", today_str()),
+                        "purchase_price": item.get("purchase_price"),
+                        "currency": item.get("currency", "INR"),
+                    }
+                    if entry["purchase_price"] is not None:
+                        try:
+                            entry["purchase_price"] = float(entry["purchase_price"])
+                        except (ValueError, TypeError):
+                            entry["purchase_price"] = None
+                    valid.append(entry)
+            return valid
+        return deepcopy(DEFAULT_PURCHASED_GAMES)
+    except Exception as e:
+        logger.error("Failed to parse purchased_games.json: %s", e)
+        return deepcopy(DEFAULT_PURCHASED_GAMES)
+
+
+def dump_purchased_games(purchased_games: list[dict[str, Any]]) -> str:
+    return json.dumps(purchased_games, indent=2, ensure_ascii=False)
+
+
+def get_purchased_game(purchased_games: list[dict[str, Any]], game_id: str) -> Optional[dict[str, Any]]:
+    for g in purchased_games:
+        if g.get("id") == game_id:
+            return g
+    return None
+
+
+def get_purchased_game_by_title_store(
+    purchased_games: list[dict[str, Any]],
+    title: str,
+    store: str,
+) -> Optional[dict[str, Any]]:
+    t_slug = canonical_game_id(title) if title else ""
+    t_lower = title.lower().strip() if title else ""
+    s_lower = store.lower().strip() if store else ""
+    for g in purchased_games:
+        g_store = g.get("store", "").lower().strip()
+        if g_store == s_lower:
+            g_title = g.get("title", "")
+            if g_title.lower().strip() == t_lower or (t_slug and canonical_game_id(g_title) == t_slug):
+                return g
+    return None
+
+
+def is_game_purchased(
+    purchased_games: list[dict[str, Any]],
+    title: str,
+    store: str,
+) -> bool:
+    return get_purchased_game_by_title_store(purchased_games, title, store) is not None
+
+
+def add_purchased_game(
+    purchased_games: list[dict[str, Any]],
+    entry: dict[str, Any],
+) -> list[dict[str, Any]]:
+    import time
+    games = deepcopy(purchased_games)
+    title = entry.get("title", "").strip()
+    store = entry.get("store", "").strip()
+
+    existing = get_purchased_game_by_title_store(games, title, store)
+    if existing:
+        return update_purchased_game(games, existing["id"], entry)
+
+    new_id = entry.get("id") or f"purchased_{canonical_game_id(title)}_{store.lower()}_{int(time.time())}"
+    new_game = {
+        "id": new_id,
+        "title": title,
+        "store": store,
+        "url": entry.get("url", ""),
+        "cover": entry.get("cover", entry.get("cover_image", "")),
+        "purchase_date": entry.get("purchase_date") or today_str(),
+        "purchase_price": entry.get("purchase_price"),
+        "currency": entry.get("currency", "INR"),
+    }
+    if new_game["purchase_price"] is not None:
+        try:
+            new_game["purchase_price"] = float(new_game["purchase_price"])
+        except (ValueError, TypeError):
+            new_game["purchase_price"] = None
+
+    games.append(new_game)
+    return games
+
+
+def update_purchased_game(
+    purchased_games: list[dict[str, Any]],
+    game_id: str,
+    updated_fields: dict[str, Any],
+) -> list[dict[str, Any]]:
+    games = deepcopy(purchased_games)
+    for g in games:
+        if g.get("id") == game_id:
+            for k in ("title", "store", "url", "cover", "purchase_date", "currency"):
+                if k in updated_fields and updated_fields[k] is not None:
+                    g[k] = updated_fields[k]
+            if "purchase_price" in updated_fields:
+                val = updated_fields["purchase_price"]
+                if val is not None:
+                    try:
+                        g["purchase_price"] = float(val)
+                    except (ValueError, TypeError):
+                        g["purchase_price"] = None
+                else:
+                    g["purchase_price"] = None
+            break
+    return games
+
+
+def remove_purchased_game(
+    purchased_games: list[dict[str, Any]],
+    game_id: str,
+) -> list[dict[str, Any]]:
+    return [g for g in purchased_games if g.get("id") != game_id]
+
+
+def calculate_total_spending(purchased_games: list[dict[str, Any]]) -> float:
+    total = 0.0
+    for g in purchased_games:
+        price = g.get("purchase_price")
+        if price is not None:
+            try:
+                total += float(price)
+            except (ValueError, TypeError):
+                pass
+    return round(total, 2)
+
+
+
 

@@ -22,6 +22,9 @@ from database import (
     load_saved_combinations, dump_saved_combinations, add_saved_combination,
     remove_saved_combination, add_custom_tag_to_game, remove_custom_tag_from_game,
     get_all_unique_tags, filter_grouped_games_by_tag,
+    load_purchased_games, dump_purchased_games, add_purchased_game,
+    update_purchased_game, remove_purchased_game, get_purchased_game,
+    get_purchased_game_by_title_store, is_game_purchased, calculate_total_spending,
 )
 from price_api import fetch_game_details
 from search.engine import search_games, AggregatedGame
@@ -776,6 +779,39 @@ def save_theme_settings_data(gh: GitHubManager, settings: dict):
         logger.error("GitHub theme_settings.json sync error: %s", e)
 
 
+def load_purchased_games_data(gh: Optional[GitHubManager]) -> list[dict]:
+    if gh:
+        try:
+            content = gh.get_file_content("purchased_games.json")
+            if content:
+                return load_purchased_games(content)
+        except Exception as e:
+            logger.info("GitHub purchased_games fetch notice: %s", e)
+
+    if os.path.exists("purchased_games.json"):
+        try:
+            with open("purchased_games.json", "r", encoding="utf-8") as f:
+                return load_purchased_games(f.read())
+        except Exception as e:
+            logger.error("Local purchased_games.json read error: %s", e)
+    return load_purchased_games("")
+
+
+def save_purchased_games_data(gh: Optional[GitHubManager], purchased_games: list[dict]):
+    content = dump_purchased_games(purchased_games)
+    try:
+        with open("purchased_games.json", "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        logger.error("Local purchased_games.json write error: %s", e)
+
+    if gh:
+        try:
+            gh.save_purchased_games(purchased_games, "Update purchased_games.json")
+        except Exception as e:
+            logger.error("GitHub purchased_games.json sync error: %s", e)
+
+
 def is_placeholder_secret(val: str) -> bool:
     if not val or not val.strip():
         return True
@@ -1195,7 +1231,7 @@ def render_game_card(
         steam_g = next((g for g in listings if g.get("store") == "steam"), None)
         epic_g = next((g for g in listings if g.get("store") == "epic"), None)
 
-        b_cols = st.columns([1.4, 1.4, 1.4, 1.4, 1.1])
+        b_cols = st.columns([1.2, 1.2, 1.2, 1.2, 1.5, 1.5, 1.0])
         with b_cols[0]:
             if steam_g and st.button("🔄 Refresh Steam", key=f"ref_{steam_g['id']}", use_container_width=True):
                 with st.spinner("Checking Steam..."):
@@ -1227,6 +1263,12 @@ def render_game_card(
             if epic_g and epic_g.get("url"):
                 st.link_button("🔗 Open Epic", epic_g["url"], use_container_width=True)
         with b_cols[4]:
+            if steam_g:
+                render_mark_as_purchased_popover(steam_g, gh, games)
+        with b_cols[5]:
+            if epic_g:
+                render_mark_as_purchased_popover(epic_g, gh, games)
+        with b_cols[6]:
             if st.button("🗑 Delete", key=f"del_all_{primary_game['id']}", use_container_width=True, type="secondary"):
                 for g in listings:
                     games = remove_game(games, g["id"])
@@ -1238,7 +1280,7 @@ def render_game_card(
         g = primary_game
         gid = g["id"]
         store_lbl = STORE_LABELS.get(g["store"], g["store"])
-        b_cols = st.columns([1.3, 1.6, 1.1, 2.5])
+        b_cols = st.columns([1.3, 1.4, 1.6, 1.1])
         with b_cols[0]:
             if st.button("🔄 Refresh", key=f"ref_{gid}", use_container_width=True):
                 with st.spinner(f"Checking {store_lbl}..."):
@@ -1258,6 +1300,8 @@ def render_game_card(
             if g.get("url"):
                 st.link_button(f"🔗 Open {store_lbl}", g["url"], use_container_width=True)
         with b_cols[2]:
+            render_mark_as_purchased_popover(g, gh, games)
+        with b_cols[3]:
             if st.button("🗑 Delete", key=f"del_{gid}", use_container_width=True, type="secondary"):
                 updated = remove_game(games, gid)
                 try:
@@ -1305,6 +1349,313 @@ def render_game_card(
                         st.session_state.games = games
                         st.success(f"Removed tag '{ct}'!")
                         st.rerun()
+
+
+def render_mark_as_purchased_popover(g: dict, gh: Optional[GitHubManager], games: list[dict]):
+    purchased_games = st.session_state.get("purchased_games", [])
+    store_lbl = STORE_LABELS.get(g.get("store"), g.get("store", "Store"))
+    name = g.get("name", "Unknown Game")
+    gid = g.get("id", "unk")
+
+    existing = get_purchased_game_by_title_store(purchased_games, name, g.get("store", ""))
+
+    if existing:
+        with st.popover("✓ In My Library", use_container_width=True):
+            st.markdown('<div style="font-weight:700;color:var(--theme-text-primary);margin-bottom:4px;">✓ Already in My Library</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:13px;color:var(--theme-text-secondary);margin-bottom:8px;">{name} ({store_lbl})</div>', unsafe_allow_html=True)
+
+            cur_p = existing.get("purchase_price")
+            cur_p_str = format_price(cur_p, existing.get("currency", "INR")) if cur_p is not None else "Price not recorded"
+            st.markdown(f'<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:12px;">Recorded Price: <b>{cur_p_str}</b><br>Purchased Date: <b>{existing.get("purchase_date", "N/A")}</b></div>', unsafe_allow_html=True)
+
+            st.markdown('<div style="font-size:12px;font-weight:600;color:var(--theme-text-muted);margin-bottom:4px;">Edit Details:</div>', unsafe_allow_html=True)
+            edit_p = st.text_input("Purchase price (₹)", value=str(cur_p) if cur_p is not None else "", placeholder="₹ Optional", key=f"ex_edit_p_{gid}")
+
+            cur_dt = datetime.today()
+            if existing.get("purchase_date"):
+                try:
+                    cur_dt = datetime.strptime(existing["purchase_date"], "%Y-%m-%d")
+                except Exception:
+                    pass
+            edit_d = st.date_input("Purchase date", value=cur_dt, key=f"ex_edit_d_{gid}")
+
+            if st.button("Save Changes", type="primary", use_container_width=True, key=f"ex_save_btn_{gid}"):
+                new_price = None
+                if edit_p.strip():
+                    try:
+                        new_price = float(edit_p.strip())
+                    except ValueError:
+                        st.error("Invalid price.")
+                        st.stop()
+                updated_purchased = update_purchased_game(purchased_games, existing["id"], {
+                    "purchase_price": new_price,
+                    "purchase_date": edit_d.strftime("%Y-%m-%d"),
+                })
+                save_purchased_games_data(gh, updated_purchased)
+                st.session_state.purchased_games = updated_purchased
+                st.success("Updated library record!")
+                st.rerun()
+
+            if cur_p is not None:
+                if st.button("Clear Price", type="secondary", use_container_width=True, key=f"ex_clear_p_btn_{gid}"):
+                    updated_purchased = update_purchased_game(purchased_games, existing["id"], {"purchase_price": None})
+                    save_purchased_games_data(gh, updated_purchased)
+                    st.session_state.purchased_games = updated_purchased
+                    st.success("Price cleared.")
+                    st.rerun()
+    else:
+        with st.popover("✓ I Bought This", use_container_width=True):
+            st.markdown('<div style="font-size:15px;font-weight:800;color:var(--theme-text-primary);margin-bottom:4px;">✓ Mark as Purchased</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:13px;font-weight:600;color:var(--theme-accent-primary,#6366f1);margin-bottom:12px;">{name}<br><span style="font-size:12px;color:var(--theme-text-muted);">{store_lbl}</span></div>', unsafe_allow_html=True)
+
+            p_input = st.text_input(
+                "Purchase price (optional)",
+                placeholder="₹ Optional (leave blank if unrecorded)",
+                key=f"buy_p_input_{gid}",
+            )
+            d_input = st.date_input(
+                "Purchase date",
+                value=datetime.today(),
+                key=f"buy_d_input_{gid}",
+            )
+            rem_tracker = st.checkbox(
+                "Remove from price tracker",
+                value=True,
+                key=f"buy_rem_cb_{gid}",
+            )
+
+            if st.button("Add to My Library", type="primary", use_container_width=True, key=f"buy_add_lib_btn_{gid}"):
+                price_val = None
+                if p_input.strip():
+                    try:
+                        price_val = float(p_input.strip())
+                    except ValueError:
+                        st.error("Invalid price. Please enter a valid number or leave blank.")
+                        st.stop()
+
+                date_str = d_input.strftime("%Y-%m-%d")
+                entry = {
+                    "title": name,
+                    "store": store_lbl,
+                    "url": g.get("url", ""),
+                    "cover": g.get("cover_image", ""),
+                    "purchase_date": date_str,
+                    "purchase_price": price_val,
+                    "currency": get_price_currency(g, "current_price") or "INR",
+                }
+
+                updated_purchased = add_purchased_game(purchased_games, entry)
+                save_purchased_games_data(gh, updated_purchased)
+                st.session_state.purchased_games = updated_purchased
+
+                if rem_tracker:
+                    updated_games = remove_game(games, gid)
+                    if gh:
+                        try:
+                            gh.save_games(updated_games, f"Remove {name} from tracker after purchase")
+                        except Exception as e:
+                            logger.error("Failed to sync games after purchase: %s", e)
+                    st.session_state.games = updated_games
+
+                st.success(f"Added '{name}' ({store_lbl}) to My Library!")
+                st.rerun()
+
+
+def _render_library_card(item: dict, purchased_games: list[dict], gh: Optional[GitHubManager]):
+    gid = item["id"]
+    title = item.get("title", "Unknown Game")
+    store = item.get("store", "Steam")
+    url = item.get("url", "")
+    cover = item.get("cover", "")
+    purchase_date = item.get("purchase_date", "")
+    price = item.get("purchase_price")
+    currency = item.get("currency", "INR")
+
+    s_lower = store.lower()
+    store_icon = "🟦" if "steam" in s_lower else ("🟩" if "epic" in s_lower else "🎮")
+    store_badge_html = f'<span style="display:inline-block;background:var(--theme-bg-card-elevated);border:1px solid var(--theme-border-color);color:var(--theme-text-primary);font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;">{store_icon} {store}</span>'
+
+    cover_html = (
+        f'<div style="width:100%;height:150px;overflow:hidden;border-radius:var(--theme-card-radius, 8px) var(--theme-card-radius, 8px) 0 0;background:var(--theme-bg-sidebar);">'
+        f'<img src="{cover}" alt="{title}" style="width:100%;height:100%;object-fit:cover;display:block;">'
+        f'</div>'
+        if cover else
+        f'<div style="width:100%;height:150px;border-radius:var(--theme-card-radius, 8px) var(--theme-card-radius, 8px) 0 0;background:var(--theme-bg-card-elevated);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--theme-text-muted);">🎮</div>'
+    )
+
+    if price is not None:
+        price_str = format_price(price, currency)
+        price_html = f'<div style="font-size:15px;font-weight:800;color:var(--theme-sale,#4ade80);margin-top:8px;">Bought for {price_str}</div>'
+    else:
+        price_html = f'<div style="font-size:13px;font-weight:600;color:var(--theme-text-muted);margin-top:8px;">Bought<br><span style="font-size:12px;font-weight:400;color:var(--theme-text-muted);">Price not recorded</span></div>'
+
+    date_formatted = purchase_date
+    if purchase_date:
+        try:
+            dt = datetime.strptime(purchase_date, "%Y-%m-%d")
+            date_formatted = dt.strftime("%b %d, %Y")
+        except Exception:
+            pass
+    date_html = f'<div style="font-size:12px;color:var(--theme-text-muted);margin-top:4px;">Purchased {date_formatted}</div>'
+
+    st.markdown(
+        f'<div style="background:var(--theme-bg-card);border:1px solid var(--theme-border-color);border-radius:var(--theme-card-radius, 12px);box-shadow:var(--theme-shadow-card);overflow:hidden;margin-bottom:12px;display:flex;flex-direction:column;">'
+        f'{cover_html}'
+        f'<div style="padding:14px;flex:1;display:flex;flex-direction:column;justify-content:space-between;">'
+        f'<div>'
+        f'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">'
+        f'<div style="font-size:16px;font-weight:700;color:var(--theme-text-primary);line-height:1.3;">{title}</div>'
+        f'</div>'
+        f'{store_badge_html}'
+        f'{price_html}'
+        f'{date_html}'
+        f'</div>'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    b1, b2, b3 = st.columns([1.2, 1.2, 1])
+    with b1:
+        if url:
+            st.link_button("🔗 Store", url, use_container_width=True)
+    with b2:
+        with st.popover("✏️ Edit", use_container_width=True):
+            st.markdown(f'<div style="font-weight:700;color:var(--theme-text-primary);margin-bottom:8px;">✏️ Edit Purchase</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:13px;color:var(--theme-text-secondary);margin-bottom:8px;">{title} ({store})</div>', unsafe_allow_html=True)
+
+            cur_price_str = f"{price:.2f}" if price is not None else ""
+            edit_p_val = st.text_input("Purchase price (₹)", value=cur_price_str, placeholder="₹ Optional (leave empty if unrecorded)", key=f"edit_p_inp_{gid}")
+
+            cur_dt = datetime.today()
+            if purchase_date:
+                try:
+                    cur_dt = datetime.strptime(purchase_date, "%Y-%m-%d")
+                except Exception:
+                    pass
+            edit_d_val = st.date_input("Purchase date", value=cur_dt, key=f"edit_d_inp_{gid}")
+
+            if st.button("Save Changes", type="primary", use_container_width=True, key=f"save_edit_btn_{gid}"):
+                new_price = None
+                if edit_p_val.strip():
+                    try:
+                        new_price = float(edit_p_val.strip())
+                    except ValueError:
+                        st.error("Invalid price. Enter a number or leave empty.")
+                        st.stop()
+                new_date = edit_d_val.strftime("%Y-%m-%d")
+                updated_list = update_purchased_game(purchased_games, gid, {
+                    "purchase_price": new_price,
+                    "purchase_date": new_date,
+                })
+                save_purchased_games_data(gh, updated_list)
+                st.session_state.purchased_games = updated_list
+                st.success("Purchase details updated!")
+                st.rerun()
+
+            if price is not None:
+                if st.button("Clear Price", type="secondary", use_container_width=True, key=f"clear_price_btn_{gid}"):
+                    updated_list = update_purchased_game(purchased_games, gid, {"purchase_price": None})
+                    save_purchased_games_data(gh, updated_list)
+                    st.session_state.purchased_games = updated_list
+                    st.success("Purchase price cleared.")
+                    st.rerun()
+
+    with b3:
+        with st.popover("🗑 Remove", use_container_width=True):
+            st.markdown(f'<div style="font-weight:700;color:var(--theme-warning,#ef4444);margin-bottom:8px;">🗑 Remove from Library</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:13px;color:var(--theme-text-muted);margin-bottom:12px;">Remove <b>{title}</b> ({store}) from My Library?<br><br><i>Note: This will not re-add the game to your price tracker.</i></div>', unsafe_allow_html=True)
+            if st.button("Confirm Remove", type="primary", use_container_width=True, key=f"confirm_rm_lib_btn_{gid}"):
+                updated_list = remove_purchased_game(purchased_games, gid)
+                save_purchased_games_data(gh, updated_list)
+                st.session_state.purchased_games = updated_list
+                st.success(f"Removed '{title}' from My Library.")
+                st.rerun()
+
+
+def render_my_library_view(purchased_games: list[dict], games: list[dict], gh: Optional[GitHubManager]):
+    st.markdown('<div style="font-size:22px;font-weight:800;color:var(--theme-text-primary);letter-spacing:-0.02em;margin-bottom:2px;">📚 My Library</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:14px;color:var(--theme-text-muted);margin-bottom:20px;">Games you\'ve purchased</div>', unsafe_allow_html=True)
+
+    total_owned = len(purchased_games)
+    total_spending = calculate_total_spending(purchased_games)
+    games_with_price = len([g for g in purchased_games if g.get("purchase_price") is not None])
+
+    spending_disp = format_price(total_spending, "INR")
+
+    st.markdown(
+        f'<div class="summary-cards-container">'
+        f'<div class="sum-card"><div class="sum-icon">📚</div><div class="sum-info"><div class="sum-label">Games Owned</div><div class="sum-val">{total_owned}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-sale,#4ade80);">💰</div><div class="sum-info"><div class="sum-label">Total Spending</div><div class="sum-val sale">{spending_disp}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-muted);">🏷️</div><div class="sum-info"><div class="sum-label">Prices Logged</div><div class="sum-val">{games_with_price} of {total_owned}</div></div></div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not purchased_games:
+        st.markdown(
+            '<div class="empty-box">'
+            '<div class="empty-icon">📚</div>'
+            '<div class="empty-title">Your library is empty</div>'
+            '<div class="empty-sub">Games you mark as purchased will appear here.</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
+        col_center1, col_center2, col_center3 = st.columns([1, 1.5, 1])
+        with col_center2:
+            if st.button("🎮 Browse Tracked Games", type="primary", use_container_width=True, key="empty_lib_browse_btn"):
+                st.session_state.main_sidebar_nav_choice = "🎮 Tracked Games"
+                st.rerun()
+        return
+
+    f_col1, f_col2 = st.columns([3, 1.5])
+    with f_col1:
+        all_stores = ["All"]
+        stores_found = sorted(list({g.get("store", "") for g in purchased_games if g.get("store")}))
+        for s in stores_found:
+            if s not in all_stores:
+                all_stores.append(s)
+
+        store_filter = st.radio(
+            "Filter library games by store",
+            all_stores,
+            horizontal=True,
+            label_visibility="collapsed",
+            key="library_store_filter_radio",
+        )
+    with f_col2:
+        sort_choice = st.selectbox(
+            "Sort library games by",
+            ["Recently Purchased", "Game Name", "Purchase Price"],
+            label_visibility="collapsed",
+            key="library_sort_choice_select",
+        )
+
+    filtered_list = list(purchased_games)
+    if store_filter != "All":
+        filtered_list = [g for g in filtered_list if g.get("store", "").lower() == store_filter.lower()]
+
+    if sort_choice == "Recently Purchased":
+        filtered_list.sort(key=lambda g: g.get("purchase_date", ""), reverse=True)
+    elif sort_choice == "Game Name":
+        filtered_list.sort(key=lambda g: g.get("title", "").lower())
+    elif sort_choice == "Purchase Price":
+        filtered_list.sort(
+            key=lambda g: (0, -g["purchase_price"]) if g.get("purchase_price") is not None else (1, 0)
+        )
+
+    if not filtered_list:
+        st.info(f"No purchased games match store filter '{store_filter}'.")
+        return
+
+    cols_per_row = 3
+    for i in range(0, len(filtered_list), cols_per_row):
+        row_games = filtered_list[i : i + cols_per_row]
+        cols = st.columns(cols_per_row)
+        for idx, item in enumerate(row_games):
+            with cols[idx]:
+                _render_library_card(item, purchased_games, gh)
 
 
 def handle_add_game(games: list[dict], game_url: str, target_input: str, gh: GitHubManager):
@@ -1382,6 +1733,7 @@ def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
     unique_games = len(group_games_by_identity(games))
     store_stats = store_filter_stats(games)
     last_sync = get_last_sync(games)
+    owned_count = len(st.session_state.get("purchased_games", []))
 
     theme_settings = st.session_state.get("theme_settings", {})
     t_id = theme_settings.get("theme_id", "midnight_gamer")
@@ -1405,6 +1757,7 @@ def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
     st.markdown(
         f'<div class="summary-cards-container">'
         f'<div class="sum-card"><div class="sum-icon">🎮</div><div class="sum-info"><div class="sum-label">Tracked Games</div><div class="sum-val">{unique_games}</div></div></div>'
+        f'<div class="sum-card"><div class="sum-icon">📚</div><div class="sum-info"><div class="sum-label">Owned</div><div class="sum-val accent">{owned_count}</div></div></div>'
         f'<div class="sum-card"><div class="sum-icon">🔥</div><div class="sum-info"><div class="sum-label">On Sale</div><div class="sum-val sale">{len(on_sale_games)}</div></div></div>'
         f'<div class="sum-card"><div class="sum-icon" style="color:#66c0f4;">●</div><div class="sum-info"><div class="sum-label">Steam</div><div class="sum-val">{store_stats["steam"]}</div></div></div>'
         f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-primary);">●</div><div class="sum-info"><div class="sum-label">Epic Games</div><div class="sum-val">{store_stats["epic"]}</div></div></div>'
@@ -2249,9 +2602,14 @@ def main():
         games = st.session_state.games
         history = st.session_state.history
 
+    if "purchased_games" not in st.session_state:
+        st.session_state.purchased_games = load_purchased_games_data(gh)
+    purchased_games = st.session_state.purchased_games
+
     last_sync = get_last_sync(games)
     unique_games = len(group_games_by_identity(games))
     on_sale_count = len([g for g in games if g.get("is_on_sale")])
+    owned_count = len(purchased_games)
 
     # ── Compact Left Sidebar Navigation ──────────────────────
     with st.sidebar:
@@ -2272,6 +2630,7 @@ def main():
                 "🏠 Dashboard",
                 "🔍 Search Games",
                 "🎮 Tracked Games",
+                "📚 My Library",
                 "📈 Price History",
                 "🧮 Smart Calculator",
                 "🔥 Deals",
@@ -2287,7 +2646,7 @@ def main():
         st.markdown(
             f'<div class="sidebar-status-card">'
             f'<div style="font-size:11px;color:var(--theme-text-secondary,#64748b);text-transform:uppercase;font-weight:700;">Status</div>'
-            f'<div style="font-size:13px;color:var(--theme-text-primary,#f8fafc);margin-top:4px;">{unique_games} games ({on_sale_count} on sale)</div>'
+            f'<div style="font-size:13px;color:var(--theme-text-primary,#f8fafc);margin-top:4px;">{unique_games} tracked ({on_sale_count} on sale) · {owned_count} owned</div>'
             f'<div style="font-size:11px;color:var(--theme-text-secondary,#64748b);margin-top:2px;">Last synced: {last_sync}</div>'
             f'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--theme-border-color,#1f293d);font-size:11px;color:var(--theme-accent,#6366f1);font-weight:700;">'
             f'{active_t["icon"]} {active_t["name"]} ({theme_settings.get("personality_level", "Subtle")})'
@@ -2315,6 +2674,8 @@ def main():
         render_search_view(games, gh)
     elif nav_choice == "🎮 Tracked Games":
         render_tracked_games_view(games, history, gh)
+    elif nav_choice == "📚 My Library":
+        render_my_library_view(purchased_games, games, gh)
     elif nav_choice == "📈 Price History":
         render_history_view(games, history)
     elif nav_choice == "🧮 Smart Calculator":

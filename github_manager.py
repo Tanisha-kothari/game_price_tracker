@@ -98,6 +98,11 @@ class GitHubManager:
         from database import dump_theme_settings
         return self.save_file("theme_settings.json", dump_theme_settings(settings), message)
 
+    def save_purchased_games(self, purchased_games: list[dict], message: str = "Update purchased_games.json") -> dict:
+        from database import dump_purchased_games
+        return self.save_file("purchased_games.json", dump_purchased_games(purchased_games), message)
+
+
     def test_connection(self) -> bool:
         try:
             resp = requests.get(self._base_url, headers=self._headers, timeout=20)
