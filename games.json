@@ -435,28 +435,6 @@
     "custom_tags": []
   },
   {
-    "id": "epic_tomb-raider",
-    "game_id": "tomb-raider",
-    "name": "Tomb Raider GAME OF THE YEAR EDITION",
-    "store": "epic",
-    "url": "https://store.epicgames.com/p/tomb-raider",
-    "current_price": 899.0,
-    "current_currency": "INR",
-    "original_price": 899.0,
-    "discount_percent": 0,
-    "is_on_sale": false,
-    "sale_started": null,
-    "sale_last_seen": null,
-    "sale_end": null,
-    "lowest_price": 134.85,
-    "lowest_currency": "INR",
-    "last_checked": "2026-09-22",
-    "currency": "INR",
-    "cover_image": "https://cdn1.epicgames.com/salesEvent/salesEvent/EGS_TombRaiderGAMEOFTHEYEAREDITION_CrystalDynamics_S2_1200x1600-a700eac197c57b46cfc99a08b1d62589",
-    "store_tags": [],
-    "custom_tags": []
-  },
-  {
     "id": "epic_edge-of-eternity",
     "game_id": "edge-of-eternity",
     "name": "Edge Of Eternity",
