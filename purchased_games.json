@@ -28,5 +28,15 @@
     "purchase_date": "2026-09-22",
     "purchase_price": 599.0,
     "currency": "INR"
+  },
+  {
+    "id": "purchased_tomb-raider_epic games_1790315067",
+    "title": "Tomb Raider GAME OF THE YEAR EDITION",
+    "store": "Epic Games",
+    "url": "https://store.epicgames.com/p/tomb-raider",
+    "cover": "https://cdn1.epicgames.com/salesEvent/salesEvent/EGS_TombRaiderGAMEOFTHEYEAREDITION_CrystalDynamics_S2_1200x1600-a700eac197c57b46cfc99a08b1d62589",
+    "purchase_date": "2026-09-25",
+    "purchase_price": null,
+    "currency": "INR"
   }
 ]
