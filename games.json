@@ -700,5 +700,31 @@
       "Adventure"
     ],
     "custom_tags": []
+  },
+  {
+    "id": "steam_812140",
+    "game_id": "assassins-creed-odyssey",
+    "name": "Assassin's Creed® Odyssey",
+    "store": "steam",
+    "url": "https://store.steampowered.com/app/812140",
+    "current_price": 2999.0,
+    "current_currency": "INR",
+    "original_price": 2999.0,
+    "discount_percent": 0,
+    "is_on_sale": false,
+    "sale_started": null,
+    "sale_last_seen": null,
+    "sale_end": null,
+    "lowest_price": 2999.0,
+    "lowest_currency": "INR",
+    "last_checked": "2026-11-19",
+    "currency": "INR",
+    "cover_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/812140/header.jpg?t=1793886405",
+    "store_tags": [
+      "Action",
+      "Adventure",
+      "RPG"
+    ],
+    "custom_tags": []
   }
 ]
