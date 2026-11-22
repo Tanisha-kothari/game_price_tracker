@@ -4,6 +4,7 @@ import random
 import logging
 from datetime import datetime
 from typing import Optional
+from dashboard_ui import render_dashboard
 
 import streamlit as st
 
@@ -31,10 +32,12 @@ from search.engine import search_games, AggregatedGame
 from stores import get_pricing
 from utils import canonical_game_id
 from github_manager import GitHubManager
-from scheduler import start_daily_report_scheduler
+from scheduler import start_daily_report_scheduler, start_price_refresh_scheduler
+from health import handle_streamlit_query_health, patch_starlette_health_routes, start_health_server
 from budget_planner import BudgetPlanner, BudgetOptions, BudgetPlannerError, PlanResult, combo_key
 from report import build_daily_report
 from themes import THEMES, PERSONALITY_LEVELS, generate_theme_css, get_theme, get_contextual_message
+from database import calculate_next_refresh, load_refresh_status
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("app")
@@ -46,589 +49,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Compact Modern Dark Gaming Dashboard CSS ─────────────────────────
-CUSTOM_CSS = """
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+# Intercept lightweight health check immediately before any DB loading
+handle_streamlit_query_health()
 
-    *, *::before, *::after {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        box-sizing: border-box;
-    }
+# ── Theme-driven GameTracker Styling ──
+CUSTOM_CSS = ""
 
-    .stApp, [data-testid="stAppViewContainer"], .stAppViewContainer, section.main, .main, [data-testid="stMain"], div[data-testid="stAppViewMain"] {
-        background: var(--theme-bg-body) !important;
-        color: var(--theme-text-primary) !important;
-        font-family: var(--theme-font-family, 'Inter', -apple-system, sans-serif) !important;
-    }
-
-    .block-container {
-        padding: 1.25rem 2rem 3rem !important;
-        max-width: 1280px !important;
-        margin: 0 auto;
-        background: transparent !important;
-    }
-
-    #MainMenu, footer { display: none !important; }
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-        z-index: 100 !important;
-    }
-    button[data-testid="stSidebarCollapseButton"], button[data-testid="baseButton-headerNoPadding"] {
-        color: var(--theme-text-muted) !important;
-        background: var(--theme-bg-card) !important;
-        border: 1px solid var(--theme-border-color) !important;
-        border-radius: var(--theme-button-radius, 6px) !important;
-    }
-    button[data-testid="stSidebarCollapseButton"]:hover {
-        color: var(--theme-text-primary) !important;
-        background: var(--theme-bg-card-elevated) !important;
-    }
-
-    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 {
-        color: var(--theme-text-primary) !important;
-        font-family: var(--theme-font-family, 'Inter', sans-serif) !important;
-        font-weight: 700 !important;
-        letter-spacing: -0.02em;
-        margin: 0 0 0.5rem 0;
-    }
-
-    /* ── Streamlit Markdown Paragraphs & Labels ─────────────── */
-    .stMarkdown p, .stMarkdown li, [data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li {
-        color: var(--theme-text-secondary);
-    }
-
-    /* ── Persistent Left Sidebar Navigation ─────────────────── */
-    section[data-testid="stSidebar"] {
-        background-color: var(--theme-bg-sidebar) !important;
-        border-right: 1px solid var(--theme-border-color) !important;
-        min-width: 230px !important;
-        max-width: 250px !important;
-        width: 240px !important;
-        flex-shrink: 0 !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stSidebarContent"] {
-        background-color: var(--theme-bg-sidebar) !important;
-        padding: 1.1rem 0.85rem !important;
-    }
-    section[data-testid="stSidebar"] .block-container {
-        padding: 0 !important;
-        max-width: 100% !important;
-    }
-
-    .sidebar-brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 2px 4px 12px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid var(--theme-border-subtle);
-    }
-    .sidebar-brand-icon {
-        font-size: 22px;
-        display: inline-block;
-        transition: transform 0.25s ease;
-    }
-    .sidebar-brand:hover .sidebar-brand-icon {
-        transform: scale(1.15) rotate(-6deg);
-    }
-    .sidebar-brand-title {
-        font-size: 17px;
-        font-weight: 800;
-        color: var(--theme-text-primary) !important;
-        font-family: var(--theme-font-family, 'Inter', sans-serif);
-        letter-spacing: -0.03em;
-    }
-    .sidebar-brand-subtitle {
-        font-size: 11px;
-        color: var(--theme-text-muted) !important;
-        font-weight: 500;
-    }
-
-    /* ── Sidebar Navigation Links ───────────────────────────── */
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] {
-        width: 100% !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] > div {
-        gap: 3px !important;
-        width: 100% !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] label {
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: var(--theme-button-radius, 8px);
-        padding: 9px 12px;
-        color: var(--theme-text-secondary) !important;
-        font-weight: 500;
-        font-size: 13.5px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        width: 100% !important;
-        margin: 0 !important;
-        transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {
-        background: var(--theme-bg-card-elevated) !important;
-        color: var(--theme-text-primary) !important;
-        border-color: var(--theme-border-subtle) !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {
-        background: var(--theme-bg-card-elevated) !important;
-        border-color: var(--theme-accent-primary) !important;
-        color: var(--theme-text-primary) !important;
-        font-weight: 600;
-        box-shadow: var(--theme-shadow-card) !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] label > div:first-child {
-        display: none !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] label > div:last-child {
-        width: 100% !important;
-        color: inherit !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stRadio"] label p {
-        font-size: 13.5px !important;
-        margin: 0 !important;
-        color: inherit !important;
-        font-weight: inherit !important;
-        white-space: nowrap !important;
-    }
-
-    .sidebar-status-card {
-        background: var(--theme-bg-card) !important;
-        border: 1px solid var(--theme-border-color) !important;
-        border-radius: var(--theme-card-radius, 8px) !important;
-        padding: 10px 12px;
-        margin-top: 20px;
-    }
-
-    /* ── Form Inputs & Widgets ──────────────────────────────── */
-    .stTextInput input, .stNumberInput input, .stTextArea textarea {
-        background: var(--theme-bg-input) !important;
-        color: var(--theme-text-primary) !important;
-        border: 1px solid var(--theme-border-color) !important;
-        border-radius: var(--theme-input-radius, 8px) !important;
-        padding: 10px 14px !important;
-        font-size: 14px !important;
-        transition: all 0.2s ease;
-    }
-    .stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus {
-        border-color: var(--theme-accent-primary) !important;
-        box-shadow: 0 0 0 3px var(--theme-accent-bg) !important;
-    }
-    .stTextInput input::placeholder, .stTextArea textarea::placeholder { color: var(--theme-text-muted) !important; }
-
-    /* BaseWeb Selects & Multiselects */
-    div[data-baseweb="select"] > div {
-        background-color: var(--theme-bg-input) !important;
-        border: 1px solid var(--theme-border-color) !important;
-        border-radius: var(--theme-input-radius, 8px) !important;
-        color: var(--theme-text-primary) !important;
-        font-size: 13px !important;
-    }
-    div[data-baseweb="select"] span, div[data-baseweb="select"] div, div[data-baseweb="select"] p, div[data-baseweb="select"] svg {
-        color: var(--theme-text-primary) !important;
-        fill: var(--theme-text-primary) !important;
-    }
-
-    /* Multiselect Tags / Pills */
-    [data-baseweb="tag"], span[data-baseweb="tag"] {
-        background-color: var(--theme-bg-card-elevated) !important;
-        border: 1px solid var(--theme-border-color) !important;
-        color: var(--theme-text-primary) !important;
-        border-radius: var(--theme-button-radius, 6px) !important;
-    }
-    [data-baseweb="tag"] span, span[data-baseweb="tag"] span {
-        color: var(--theme-text-primary) !important;
-    }
-    [data-baseweb="tag"] [data-role="remove"] {
-        color: var(--theme-text-muted) !important;
-    }
-
-    /* Dropdown Menus & Popovers */
-    [data-baseweb="popover"], [data-baseweb="menu"], ul[role="listbox"], [data-baseweb="popover"] > div {
-        background-color: var(--theme-bg-input) !important;
-        border: 1px solid var(--theme-border-color) !important;
-        box-shadow: var(--theme-shadow-card) !important;
-    }
-    [data-baseweb="option"], li[role="option"], [data-baseweb="option"] span, li[role="option"] span, [data-baseweb="option"] div, li[role="option"] div {
-        background-color: var(--theme-bg-input) !important;
-        color: var(--theme-text-primary) !important;
-    }
-    [data-baseweb="option"]:hover, [data-baseweb="option"][aria-selected="true"], li[role="option"]:hover, [data-baseweb="option"][aria-selected="true"] span {
-        background-color: var(--theme-bg-card-elevated) !important;
-        color: var(--theme-text-primary) !important;
-    }
-
-    /* Streamlit Expanders, Checkboxes, Radios */
-    [data-testid="stExpander"], details[data-testid="stExpander"], div[data-testid="stExpanderDetails"] {
-        background-color: var(--theme-bg-card) !important;
-        border: 1px solid var(--theme-border-color) !important;
-        border-radius: var(--theme-card-radius, 10px) !important;
-        color: var(--theme-text-primary) !important;
-        box-shadow: var(--theme-shadow-card) !important;
-    }
-    summary[data-testid="stExpanderSummary"], [data-testid="stExpanderSummary"] {
-        background-color: var(--theme-bg-card) !important;
-        color: var(--theme-text-primary) !important;
-        border-radius: var(--theme-card-radius, 10px) !important;
-    }
-    summary[data-testid="stExpanderSummary"]:hover, [data-testid="stExpanderSummary"]:hover {
-        background-color: var(--theme-bg-card-elevated) !important;
-        color: var(--theme-text-primary) !important;
-    }
-    summary[data-testid="stExpanderSummary"] span, summary[data-testid="stExpanderSummary"] p, [data-testid="stExpanderSummary"] div, [data-testid="stExpanderSummary"] svg {
-        color: var(--theme-text-primary) !important;
-        fill: var(--theme-text-primary) !important;
-        font-weight: 700 !important;
-    }
-    .stRadio label, .stCheckbox label, .stRadio label p, .stCheckbox label p {
-        color: var(--theme-text-primary) !important;
-    }
-
-    /* ── Non-Wrapping Buttons ───────────────────────────────── */
-    div.stButton > button {
-        background: var(--theme-btn-secondary-bg, #1e293b) !important;
-        color: var(--theme-btn-secondary-text, #e2e8f0) !important;
-        border: 1px solid var(--theme-border-color, #334155) !important;
-        border-radius: var(--theme-button-radius, 8px) !important;
-        padding: 8px 16px !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
-        min-height: 38px !important;
-        white-space: nowrap !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
-        transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    }
-    div.stButton > button:hover {
-        background: var(--theme-bg-card-elevated, #334155) !important;
-        border-color: var(--theme-border-hover, #64748b) !important;
-        color: var(--theme-text-primary, #ffffff) !important;
-        transform: translateY(-1.5px) !important;
-        box-shadow: var(--theme-shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.35)) !important;
-    }
-    div.stButton > button:active {
-        transform: translateY(0) !important;
-    }
-
-    /* Primary CTA */
-    div.stButton > button[kind="primary"], div.stButton > button[data-testid="baseButton-primary"] {
-        background: var(--theme-btn-primary-bg, #4f46e5) !important;
-        border: 1px solid var(--theme-accent-primary, #6366f1) !important;
-        color: var(--theme-btn-primary-text, #ffffff) !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-    }
-    div.stButton > button[kind="primary"]:hover, div.stButton > button[data-testid="baseButton-primary"]:hover {
-        opacity: 0.9 !important;
-        border-color: var(--theme-accent-secondary, #818cf8) !important;
-        box-shadow: var(--theme-shadow-hover, 0 4px 16px rgba(0, 0, 0, 0.35)) !important;
-    }
-
-    /* Secondary / Delete */
-    div.stButton > button[kind="secondary"] {
-        background: var(--theme-bg-card, #121827) !important;
-        border: 1px solid var(--theme-border-color, #334155) !important;
-        color: var(--theme-text-secondary, #94a3b8) !important;
-    }
-    div.stButton > button[kind="secondary"]:hover {
-        background: rgba(239, 68, 68, 0.12) !important;
-        border-color: rgba(239, 68, 68, 0.4) !important;
-        color: var(--theme-warning, #f87171) !important;
-    }
-
-    div.stDownloadButton > button, div.stLinkButton > a {
-        background: var(--theme-bg-card, #121827) !important;
-        border: 1px solid var(--theme-border-color, #1f293d) !important;
-        border-radius: var(--theme-button-radius, 8px) !important;
-        color: var(--theme-text-secondary, #cbd5e1) !important;
-        padding: 8px 16px !important;
-        font-weight: 500 !important;
-        font-size: 13px !important;
-        min-height: 38px !important;
-        white-space: nowrap !important;
-        text-decoration: none !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: all 0.15s ease !important;
-    }
-    div.stDownloadButton > button:hover, div.stLinkButton > a:hover {
-        background: var(--theme-bg-card-elevated, #1e293b) !important;
-        border-color: var(--theme-border-hover, #475569) !important;
-        color: var(--theme-text-primary, #f8fafc) !important;
-        transform: translateY(-1px) !important;
-    }
-
-    /* ── Filter Segmented Tabs ──────────────────────────────── */
-    .main-view-container div[data-testid="stRadio"] > div {
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-    .main-view-container div[data-testid="stRadio"] label {
-        background: var(--theme-bg-card, #121827);
-        border: 1px solid var(--theme-border-color, #1f293d);
-        border-radius: var(--theme-button-radius, 8px);
-        padding: 6px 16px;
-        color: var(--theme-text-secondary, #94a3b8);
-        font-weight: 500;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-    .main-view-container div[data-testid="stRadio"] label:hover {
-        color: var(--theme-text-primary, #f8fafc);
-        border-color: var(--theme-border-hover, #475569);
-        transform: translateY(-1px);
-    }
-    .main-view-container div[data-testid="stRadio"] label:has(input:checked) {
-        background: var(--theme-bg-card-elevated, #1a2238);
-        border-color: var(--theme-accent-primary, #6366f1);
-        color: var(--theme-text-primary, #f8fafc);
-        font-weight: 600;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-    }
-
-    /* ── Compact Summary Cards Bar ──────────────────────────── */
-    .summary-cards-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-        gap: 12px;
-        margin-bottom: 22px;
-    }
-    .sum-card {
-        background: var(--theme-bg-card, #121827);
-        border: 1px solid var(--theme-border-color, #1f293d);
-        border-radius: var(--theme-card-radius, 10px);
-        padding: 14px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        box-shadow: var(--theme-shadow-card, 0 4px 12px rgba(0,0,0,0.2));
-        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .sum-card:hover {
-        transform: translateY(-2px);
-        border-color: var(--theme-border-hover, #334155);
-        box-shadow: var(--theme-shadow-hover, 0 6px 18px rgba(0, 0, 0, 0.3));
-    }
-    .sum-icon {
-        font-size: 22px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 8px;
-        background: var(--theme-bg-card-elevated, #1a2238);
-    }
-    .sum-info {
-        display: flex;
-        flex-direction: column;
-    }
-    .sum-label {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--theme-text-muted, #64748b);
-        margin-bottom: 2px;
-    }
-    .sum-val {
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--theme-text-primary, #f8fafc);
-        font-family: var(--theme-font-family, 'Inter', sans-serif);
-    }
-    .sum-val.sale { color: var(--theme-sale, #4ade80); }
-    .sum-val.accent { color: var(--theme-accent-primary, #818cf8); }
-
-    /* ── Unified Self-Contained Game Card ───────────────────── */
-    .game-card-wrapper {
-        background: var(--theme-bg-card, #121827);
-        border: 1px solid var(--theme-border-color, #1f293d);
-        border-radius: var(--theme-card-radius, 12px);
-        padding: 18px 20px 14px;
-        margin-bottom: 18px;
-        box-shadow: var(--theme-shadow-card, 0 4px 16px rgba(0, 0, 0, 0.25));
-        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                    border-color 0.2s ease,
-                    box-shadow 0.2s ease;
-    }
-    .game-card-wrapper:hover {
-        transform: translateY(-2px);
-        border-color: var(--theme-border-hover, #334155);
-        box-shadow: var(--theme-shadow-hover, 0 8px 24px rgba(0, 0, 0, 0.35));
-    }
-    .game-card-wrapper.on-sale {
-        border-left: 4px solid var(--theme-sale, #22c55e);
-    }
-
-    .card-layout-flex {
-        display: flex;
-        gap: 20px;
-    }
-    .card-art-col {
-        flex: 0 0 200px;
-        max-width: 200px;
-    }
-    .card-art-wrap {
-        overflow: hidden;
-        border-radius: var(--theme-button-radius, 8px);
-        aspect-ratio: 16 / 9;
-        background-color: var(--theme-bg-sidebar, #0b0f19);
-    }
-    .card-art-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .game-card-wrapper:hover .card-art-img {
-        transform: scale(1.04);
-    }
-
-    .card-info-col {
-        flex: 1;
-        min-width: 0;
-    }
-    .card-title-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 6px;
-    }
-    .card-game-title {
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--theme-text-primary, #f8fafc);
-        font-family: var(--theme-font-family, 'Inter', sans-serif);
-        line-height: 1.3;
-    }
-
-    .store-tag {
-        display: inline-block;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        padding: 3px 8px;
-        border-radius: 4px;
-        background: var(--theme-bg-card-elevated, #1e293b);
-        color: var(--theme-text-muted, #94a3b8);
-        border: 1px solid var(--theme-border-color, #334155);
-    }
-    .store-tag.steam { color: #66c0f4; border-color: rgba(102, 192, 244, 0.3); }
-    .store-tag.epic { color: #f8fafc; border-color: rgba(248, 250, 252, 0.3); }
-    .store-tag.gog { color: #d2b48c; border-color: rgba(210, 180, 140, 0.3); }
-
-    .disc-tag {
-        display: inline-block;
-        background: var(--theme-sale-bg, rgba(34, 197, 94, 0.15));
-        color: var(--theme-sale, #4ade80);
-        border: 1px solid var(--theme-sale, rgba(34, 197, 94, 0.3));
-        border-radius: 4px;
-        padding: 2px 7px;
-        font-size: 11px;
-        font-weight: 700;
-        margin-left: 6px;
-    }
-    .price-orig-strike {
-        font-size: 13px;
-        color: var(--theme-text-muted, #64748b);
-        text-decoration: line-through;
-        margin-left: 8px;
-    }
-
-    /* ── Dual-Store Side-by-Side Comparison ─────────────────── */
-    .compare-section {
-        background: var(--theme-bg-sidebar, #0d121f);
-        border: 1px solid var(--theme-border-color, #1a2337);
-        border-radius: var(--theme-button-radius, 8px);
-        padding: 12px 16px;
-        margin: 10px 0;
-    }
-    .compare-columns-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-    }
-    .compare-store-item {
-        display: flex;
-        flex-direction: column;
-    }
-    .compare-price-val {
-        font-size: 19px;
-        font-weight: 800;
-        color: var(--theme-text-primary, #f8fafc);
-        margin-top: 4px;
-        font-family: var(--theme-font-family, 'Inter', sans-serif);
-    }
-    .compare-price-val.sale { color: var(--theme-sale, #4ade80); }
-
-    .best-deal-callout {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--theme-sale, #4ade80);
-        background: var(--theme-sale-bg, rgba(34, 197, 94, 0.12));
-        border: 1px solid var(--theme-sale, rgba(34, 197, 94, 0.25));
-        border-radius: 6px;
-        padding: 6px 14px;
-        margin-top: 8px;
-    }
-
-    /* ── Search Hero & Search Cards ─────────────────────────── */
-    .search-hero-box {
-        background: var(--theme-bg-card, #121827);
-        border: 1px solid var(--theme-border-color, #1f293d);
-        border-radius: var(--theme-card-radius, 12px);
-        padding: 20px 22px;
-        margin-bottom: 20px;
-        box-shadow: var(--theme-shadow-card, 0 4px 16px rgba(0,0,0,0.25));
-    }
-
-    .search-result-card {
-        background: var(--theme-bg-card, #121827);
-        border: 1px solid var(--theme-border-color, #1f293d);
-        border-radius: var(--theme-card-radius, 10px);
-        padding: 16px;
-        margin-bottom: 14px;
-        box-shadow: var(--theme-shadow-card, 0 4px 12px rgba(0,0,0,0.2));
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .search-result-card:hover {
-        transform: translateY(-2px);
-        border-color: var(--theme-border-hover, #334155);
-        box-shadow: var(--theme-shadow-hover, 0 6px 18px rgba(0,0,0,0.3));
-    }
-
-    /* ── Empty State ────────────────────────────────────────── */
-    .empty-box {
-        text-align: center;
-        padding: 48px 24px;
-        background: var(--theme-bg-card, #121827);
-        border: 1px dashed var(--theme-border-color, #1f293d);
-        border-radius: var(--theme-card-radius, 12px);
-        color: var(--theme-text-muted, #94a3b8);
-    }
-    .empty-icon { font-size: 40px; margin-bottom: 8px; }
-    .empty-title { font-size: 17px; font-weight: 700; color: var(--theme-text-primary, #f8fafc); margin-bottom: 4px; font-family: var(--theme-font-family, 'Inter', sans-serif); }
-    .empty-sub { font-size: 13px; color: var(--theme-text-muted, #64748b); }
-
-    /* ── Mobile Layout ──────────────────────────────────────── */
-    @media (max-width: 768px) {
-        .block-container { padding: 0.75rem 1rem 2rem !important; }
-        .summary-cards-container { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .card-layout-flex { flex-direction: column; gap: 12px; }
-        .card-art-col { flex: 0 0 100%; max-width: 100%; }
-        .compare-columns-grid { grid-template-columns: 1fr; gap: 8px; }
-        div.stButton > button { min-height: 42px !important; width: 100% !important; }
-    }
-</style>
-"""
 
 
 def init_github() -> Optional[GitHubManager]:
@@ -779,6 +205,25 @@ def save_theme_settings_data(gh: GitHubManager, settings: dict):
         logger.error("GitHub theme_settings.json sync error: %s", e)
 
 
+def load_refresh_status_data(gh: Optional[GitHubManager]) -> dict:
+    from database import load_refresh_status
+    if gh:
+        try:
+            content = gh.get_file_content("refresh_status.json")
+            if content:
+                return load_refresh_status(content)
+        except Exception as e:
+            logger.debug("GitHub refresh_status fetch notice: %s", e)
+
+    if os.path.exists("refresh_status.json"):
+        try:
+            with open("refresh_status.json", "r", encoding="utf-8") as f:
+                return load_refresh_status(f.read())
+        except Exception as e:
+            logger.debug("Local refresh_status.json read error: %s", e)
+    return load_refresh_status("")
+
+
 def load_purchased_games_data(gh: Optional[GitHubManager]) -> list[dict]:
     if gh:
         try:
@@ -895,8 +340,14 @@ STORE_TAGS = {"steam": "STEAM", "epic": "EPIC", "gog": "GOG"}
 
 
 def render_store_tag(store: str) -> str:
-    tag = STORE_TAGS.get(store, store.upper())
-    return f'<span class="store-tag {store}">{tag}</span>'
+    s = str(store or "").lower()
+    if "steam" in s:
+        return '<span class="store-tag steam">🟦 STEAM</span>'
+    elif "epic" in s:
+        return '<span class="store-tag epic">⚡ EPIC GAMES</span>'
+    elif "gog" in s:
+        return '<span class="store-tag gog">🛡️ GOG</span>'
+    return f'<span class="store-tag">🎮 {STORE_LABELS.get(store, store.upper())}</span>'
 
 
 def _best_search_result(results: list) -> Optional[dict]:
@@ -1153,7 +604,12 @@ def render_game_card(
         '<div class="card-art-wrap" style="background:var(--theme-bg-sidebar);"></div>'
     )
 
+    purchased_games = st.session_state.get("purchased_games", [])
+    is_owned = any(is_game_purchased(purchased_games, g.get("name", name), g.get("store", "")) for g in listings)
+
     stores_badges = " ".join(render_store_tag(g["store"]) for g in listings)
+    if is_owned:
+        stores_badges += ' <span class="owned-badge">🏆 IN LIBRARY</span>'
 
     if is_multi:
         middle_html = render_store_comparison_box(listings)
@@ -1169,14 +625,16 @@ def render_game_card(
 
         price_disp = format_price(current, currency)
         orig_html = f'<span class="price-orig-strike">{format_price(orig, currency)}</span>' if is_sale and orig and orig > (current or 0) else ""
-        disc_html = f'<span class="disc-tag">-{disc}%</span>' if is_sale and disc > 0 else ""
+        disc_html = f'<span class="disc-tag">🔥 -{disc}%</span>' if is_sale and disc > 0 else ""
 
         target_val = g.get("target_price")
         target_str = ""
         if target_val is not None:
             target_met = is_target_met(current, currency, target_val, get_price_currency(g, "target_price"))
-            color = "var(--theme-sale)" if target_met else "var(--theme-text-muted)"
-            target_str = f' · Target: <span style="color:{color};font-weight:600;">{format_price(target_val, get_price_currency(g, "target_price"))}</span>'
+            if target_met:
+                target_str = f' · <span class="target-met-badge">🎯 TARGET REACHED: {format_price(target_val, get_price_currency(g, "target_price"))}</span>'
+            else:
+                target_str = f' · Target: <span style="color:var(--theme-text-muted);font-weight:600;">{format_price(target_val, get_price_currency(g, "target_price"))}</span>'
 
         middle_html = (
             f'<div style="display:flex;align-items:baseline;gap:20px;margin:10px 0 6px;">'
@@ -1705,22 +1163,29 @@ def handle_add_game(games: list[dict], game_url: str, target_input: str, gh: Git
 
 def handle_refresh_all(games: list[dict], gh: GitHubManager):
     with st.spinner("Refreshing all prices across stores..."):
-        ok = 0
-        failed = 0
-        for g in games:
-            try:
-                details = fetch_game_details(g["store"], g["url"])
-                apply_game_update(g, details)
-                if details.current_price is not None:
-                    ok += 1
-                else:
-                    failed += 1
-            except Exception:
-                failed += 1
-                continue
-        gh.save_games(games, "chore: refresh all prices")
-        st.session_state.games = games
-        msg = f"Refreshed {ok}/{len(games)} listing(s)."
+        from checker import run_price_check
+        email_addr, email_pwd, notify_to, _, _ = get_email_credentials()
+        res = run_price_check(
+            gh=gh,
+            email_address=email_addr,
+            email_password=email_pwd,
+            notify_to=notify_to,
+            is_auto=False,
+            interval_hours=6,
+        )
+        if res.get("status") == "skipped":
+            st.warning("⚠️ A price refresh job is already running in the background. Please wait a moment.")
+            return
+
+        updated_games, updated_history, _ = load_data_from_github(gh)
+        st.session_state.games = updated_games
+        st.session_state.history = updated_history
+        st.session_state.refresh_status = load_refresh_status_data(gh)
+
+        ok = res.get("successful_checks", 0)
+        failed = res.get("failed_checks", 0)
+        total = res.get("games_checked", len(games))
+        msg = f"Refreshed {ok}/{total} listing(s) successfully!"
         if failed:
             msg += f" {failed} store(s) kept last known prices."
         st.success(msg)
@@ -1729,100 +1194,42 @@ def handle_refresh_all(games: list[dict], gh: GitHubManager):
 
 # ── View 1: 🏠 Dashboard ─────────────────────────────────────────────
 def render_dashboard_view(games: list[dict], history: dict, gh: GitHubManager):
-    on_sale_games = [g for g in games if g.get("is_on_sale")]
-    unique_games = len(group_games_by_identity(games))
-    store_stats = store_filter_stats(games)
-    last_sync = get_last_sync(games)
-    owned_count = len(st.session_state.get("purchased_games", []))
-
+    """Delegates to the playful gaming lobby dashboard."""
     theme_settings = st.session_state.get("theme_settings", {})
     t_id = theme_settings.get("theme_id", "midnight_gamer")
-    p_lvl = theme_settings.get("personality_level", "Subtle")
-    from themes import get_contextual_message
-
-    if on_sale_games:
-        top_sale = max(on_sale_games, key=lambda x: x.get("discount_percent") or 0)
-        c_msg = get_contextual_message("sale", theme_id=t_id, personality_level=p_lvl, discount_percent=top_sale.get("discount_percent") or 0)
-    else:
-        c_msg = get_contextual_message("wallet_safe", theme_id=t_id, personality_level=p_lvl)
-
-    if c_msg:
-        st.markdown(
-            f'<div style="background:var(--theme-accent-bg,rgba(99,102,241,0.12));border:1px solid var(--theme-accent,#6366f1);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:700;color:var(--theme-text-primary,#f8fafc);">'
-            f'{c_msg}'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-    st.markdown(
-        f'<div class="summary-cards-container">'
-        f'<div class="sum-card"><div class="sum-icon">🎮</div><div class="sum-info"><div class="sum-label">Tracked Games</div><div class="sum-val">{unique_games}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon">📚</div><div class="sum-info"><div class="sum-label">Owned</div><div class="sum-val accent">{owned_count}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon">🔥</div><div class="sum-info"><div class="sum-label">On Sale</div><div class="sum-val sale">{len(on_sale_games)}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:#66c0f4;">●</div><div class="sum-info"><div class="sum-label">Steam</div><div class="sum-val">{store_stats["steam"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-primary);">●</div><div class="sum-info"><div class="sum-label">Epic Games</div><div class="sum-val">{store_stats["epic"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-accent-primary);">✨</div><div class="sum-info"><div class="sum-label">Both Stores</div><div class="sum-val accent">{store_stats["both"]}</div></div></div>'
-        f'<div class="sum-card"><div class="sum-icon" style="color:var(--theme-text-muted);">⏱️</div><div class="sum-info"><div class="sum-label">Last Synced</div><div class="sum-val" style="font-size:15px;color:var(--theme-text-muted);">{last_sync}</div></div></div>'
-        f'</div>',
-        unsafe_allow_html=True,
+    purchased_games = st.session_state.get("purchased_games", [])
+    unique_games = len(group_games_by_identity(games))
+    on_sale_count = len([g for g in games if g.get("is_on_sale")])
+    owned_count = len(purchased_games)
+    last_sync = get_last_sync(games)
+    
+    refresh_status = st.session_state.get("refresh_status") or load_refresh_status_data(gh)
+    last_refresh_disp, next_refresh_disp = calculate_next_refresh(
+        refresh_status.get("last_automatic_refresh"),
+        interval_hours=refresh_status.get("refresh_interval_hours", 6),
     )
 
-    # Primary Search Box on Dashboard
-    st.markdown('<div class="search-hero-box"><div style="font-size:16px;font-weight:700;color:var(--theme-text-primary);margin-bottom:10px;">🔍 Search & Track Games Across Stores</div>', unsafe_allow_html=True)
-    s_col, btn_col = st.columns([4, 1.2])
-    with s_col:
-        dash_search_query = st.text_input(
-            "Search for a game to track",
-            placeholder="Search The Witcher 3, Cyberpunk 2077, Hogwarts Legacy...",
-            label_visibility="collapsed",
-            key="dash_search_query_input",
-        )
-    with btn_col:
-        dash_search_clicked = st.button("Search Stores", type="primary", use_container_width=True, key="dash_search_btn")
-
-    if dash_search_clicked and dash_search_query.strip():
-        with st.spinner("Searching storefronts..."):
-            try:
-                st.session_state.search_results = search_games(dash_search_query.strip(), limit=6)
-                st.session_state.last_searched_query = dash_search_query.strip()
-            except Exception:
-                logger.exception("Search failed")
-                st.session_state.search_results = []
-                st.error("Search failed. Please try again.")
-
-    dash_results: list[AggregatedGame] = st.session_state.get("search_results", [])
-    if dash_results:
-        st.markdown(f'<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin:16px 0 10px;">Results for "{st.session_state.get("last_searched_query", "")}"</div>', unsafe_allow_html=True)
-        for agg in dash_results:
-            render_search_result_card(agg, games, gh, "All")
-
-    with st.expander("Can't find your game? Add a store URL manually", expanded=False):
-        st.markdown('<div style="font-size:13px;color:var(--theme-text-muted);margin-bottom:8px;">Paste a direct Steam, Epic Games, or GOG store URL:</div>', unsafe_allow_html=True)
-        url_c, pr_c, add_c = st.columns([3.2, 1, 1.2])
-        with url_c:
-            m_url = st.text_input("Store URL input", placeholder="https://store.steampowered.com/app/...", label_visibility="collapsed", key="dash_manual_url")
-        with pr_c:
-            m_target = st.text_input("Target price (₹)", placeholder="Target (₹)", label_visibility="collapsed", key="dash_manual_target")
-        with add_c:
-            if st.button("Add URL", type="primary", use_container_width=True, key="dash_manual_add_btn"):
-                handle_add_game(games, m_url, m_target, gh)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Top Active Deals Preview
-    st.markdown('<div style="font-size:17px;font-weight:800;color:var(--theme-text-primary);margin:24px 0 12px;">🔥 Top Active Deals</div>', unsafe_allow_html=True)
-    if on_sale_games:
-        grouped = group_games_by_identity(on_sale_games)
-        for gid, listings in list(grouped.items())[:3]:
-            render_game_card(listings, gh, games, history)
-    else:
-        st.markdown('<div class="empty-box"><div class="empty-icon">🏷️</div><div class="empty-title">No active sales right now</div><div class="empty-sub">When games in your library go on sale, they will be highlighted here.</div></div>', unsafe_allow_html=True)
+    render_dashboard(
+        games=games,
+        theme=get_theme(t_id),
+        stats={
+            "tracked": unique_games,
+            "on_sale": on_sale_count,
+            "owned": owned_count,
+            "price_drops": on_sale_count,
+            "last_synced": last_sync,
+            "last_automatic_refresh": last_refresh_disp,
+            "next_scheduled_refresh": next_refresh_disp,
+        },
+        purchased_games=purchased_games,
+        history=history,
+        gh=gh,
+        currency="₹",
+    )
 
 
-# ── View 2: 🔍 Search Games ──────────────────────────────────────────
 def render_search_view(games: list[dict], gh: GitHubManager):
     st.markdown('<div style="font-size:18px;font-weight:800;color:var(--theme-text-primary);margin-bottom:12px;">🔍 Search & Add Games</div>', unsafe_allow_html=True)
-    st.markdown('<div class="search-hero-box">', unsafe_allow_html=True)
     s_col, btn_col = st.columns([4, 1.2])
     with s_col:
         search_query = st.text_input(
@@ -1862,8 +1269,6 @@ def render_search_view(games: list[dict], gh: GitHubManager):
         with add_btn_col:
             if st.button("Add URL", type="primary", use_container_width=True, key="add_url_btn_search_page"):
                 handle_add_game(games, game_url, target_price_input, gh)
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
     results: list[AggregatedGame] = st.session_state.get("search_results", [])
     last_query = st.session_state.get("last_searched_query", "")
@@ -2564,12 +1969,55 @@ def render_settings_view(games: list[dict], gh: GitHubManager):
             st.success("Synchronized successfully!")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # ── Bot Integrations (Discord & WhatsApp) ────────────────
+    st.markdown('<div style="font-size:15px;font-weight:700;color:var(--theme-text-primary);margin:24px 0 10px;">🤖 Chat Assistant Bots (Discord & WhatsApp)</div>', unsafe_allow_html=True)
+    with st.expander("🎮 Configure Discord & WhatsApp Bots", expanded=False):
+        d_token = os.environ.get("DISCORD_BOT_TOKEN") or (st.secrets.get("DISCORD_BOT_TOKEN", "") if hasattr(st, "secrets") else "")
+        d_auth = os.environ.get("DISCORD_AUTHORIZED_USERS") or (st.secrets.get("DISCORD_AUTHORIZED_USERS", "") if hasattr(st, "secrets") else "")
+        wa_token = os.environ.get("WHATSAPP_ACCESS_TOKEN") or (st.secrets.get("WHATSAPP_ACCESS_TOKEN", "") if hasattr(st, "secrets") else "")
+        wa_phone_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID") or (st.secrets.get("WHATSAPP_PHONE_NUMBER_ID", "") if hasattr(st, "secrets") else "")
+        wa_secret = os.environ.get("WHATSAPP_APP_SECRET") or (st.secrets.get("WHATSAPP_APP_SECRET", "") if hasattr(st, "secrets") else "")
+        wa_verify = os.environ.get("WHATSAPP_VERIFY_TOKEN") or (st.secrets.get("WHATSAPP_VERIFY_TOKEN", "") if hasattr(st, "secrets") else "")
+
+        d_status = "🟢 Configured" if (d_token and not is_placeholder_secret(d_token)) else "⚪ Not Configured"
+        wa_status = "🟢 Configured" if (wa_token and wa_phone_id and not is_placeholder_secret(wa_token)) else "⚪ Not Configured"
+
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">'
+            f'<div style="background:var(--theme-bg-secondary);border:1.5px solid var(--theme-border-color);border-radius:12px;padding:16px;">'
+            f'<div style="font-size:14px;font-weight:800;color:var(--theme-text-primary);margin-bottom:6px;">🎮 Discord Bot</div>'
+            f'<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:8px;">Status: <strong>{d_status}</strong></div>'
+            f'<div style="font-size:11.5px;color:var(--theme-text-secondary);line-height:1.5;">'
+            f'• <strong>Commands:</strong> <code>/tracked</code>, <code>/game &lt;name&gt;</code>, <code>/owned</code>, <code>/deals</code>, <code>/search</code>, <code>/refresh</code>, <code>/help</code><br>'
+            f'• <strong>Runner:</strong> <code>python discord_bot.py</code><br>'
+            f'• <strong>Auth:</strong> User IDs configured: <code>{d_auth if d_auth else "Anyone (Default)"}</code>'
+            f'</div>'
+            f'</div>'
+            f'<div style="background:var(--theme-bg-secondary);border:1.5px solid var(--theme-border-color);border-radius:12px;padding:16px;">'
+            f'<div style="font-size:14px;font-weight:800;color:var(--theme-text-primary);margin-bottom:6px;">💬 WhatsApp Bot (Meta Cloud API)</div>'
+            f'<div style="font-size:12px;color:var(--theme-text-muted);margin-bottom:8px;">Status: <strong>{wa_status}</strong></div>'
+            f'<div style="font-size:11.5px;color:var(--theme-text-secondary);line-height:1.5;">'
+            f'• <strong>Commands:</strong> <code>TRACKED</code>, <code>GAME &lt;title&gt;</code>, <code>OWNED</code>, <code>DEALS</code>, <code>SEARCH</code>, <code>REFRESH</code>, <code>HELP</code><br>'
+            f'• <strong>Webhook URL:</strong> <code>https://&lt;your-domain&gt;/whatsapp/webhook</code><br>'
+            f'• <strong>Verify Token:</strong> <code>{wa_verify if wa_verify else "Set WHATSAPP_VERIFY_TOKEN"}</code>'
+            f'</div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
 
 # ── Main Application Orchestrator ────────────────────────────────────
 def main():
     gh = init_github()
     if gh is None:
         return
+
+    # Background health server & ASGI hook initialization (runs once)
+    if "health_server_initialized" not in st.session_state:
+        st.session_state.health_server_initialized = True
+        patch_starlette_health_routes()
+        start_health_server(port=8080)
 
     if "theme_settings" not in st.session_state:
         st.session_state.theme_settings = load_theme_settings_data(gh)
@@ -2594,6 +2042,21 @@ def main():
         else:
             logger.info("Email not configured; daily report scheduler disabled")
 
+    # In-app 6-hour automated price refresh scheduler (runs once per server lifecycle)
+    if "price_refresh_scheduler_started" not in st.session_state:
+        st.session_state.price_refresh_scheduler_started = True
+        email_addr, email_pwd, notify_to, smtp_server, smtp_port = get_email_credentials()
+        email_cfg = None
+        if email_addr and email_pwd and not is_placeholder_secret(email_addr) and not is_placeholder_secret(email_pwd):
+            email_cfg = {
+                "address": email_addr,
+                "password": email_pwd,
+                "to_address": notify_to or email_addr,
+                "smtp_server": smtp_server,
+                "smtp_port": smtp_port,
+            }
+        start_price_refresh_scheduler(gh, interval_hours=6, email_config=email_cfg)
+
     if "games" not in st.session_state or "history" not in st.session_state:
         games, history, _ = load_data_from_github(gh)
         st.session_state.games = games
@@ -2605,6 +2068,15 @@ def main():
     if "purchased_games" not in st.session_state:
         st.session_state.purchased_games = load_purchased_games_data(gh)
     purchased_games = st.session_state.purchased_games
+
+    if "refresh_status" not in st.session_state:
+        st.session_state.refresh_status = load_refresh_status_data(gh)
+    refresh_status = st.session_state.refresh_status
+
+    last_refresh_disp, next_refresh_disp = calculate_next_refresh(
+        refresh_status.get("last_automatic_refresh"),
+        interval_hours=refresh_status.get("refresh_interval_hours", 6),
+    )
 
     last_sync = get_last_sync(games)
     unique_games = len(group_games_by_identity(games))
@@ -2618,7 +2090,7 @@ def main():
             '<span class="sidebar-brand-icon">🎮</span>'
             '<div>'
             '<div class="sidebar-brand-title">GameTracker</div>'
-            '<div class="sidebar-brand-subtitle">Price & Sale Tracker</div>'
+            '<div class="sidebar-brand-subtitle">🎮 Loot Radar & Game Lobby</div>'
             '</div>'
             '</div>',
             unsafe_allow_html=True,
@@ -2645,21 +2117,26 @@ def main():
         active_t = get_theme(active_theme_id)
         st.markdown(
             f'<div class="sidebar-status-card">'
-            f'<div style="font-size:11px;color:var(--theme-text-secondary,#64748b);text-transform:uppercase;font-weight:700;">Status</div>'
-            f'<div style="font-size:13px;color:var(--theme-text-primary,#f8fafc);margin-top:4px;">{unique_games} tracked ({on_sale_count} on sale) · {owned_count} owned</div>'
-            f'<div style="font-size:11px;color:var(--theme-text-secondary,#64748b);margin-top:2px;">Last synced: {last_sync}</div>'
-            f'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--theme-border-color,#1f293d);font-size:11px;color:var(--theme-accent,#6366f1);font-weight:700;">'
-            f'{active_t["icon"]} {active_t["name"]} ({theme_settings.get("personality_level", "Subtle")})'
+            f'<div style="font-size:11px;color:var(--theme-text-muted);text-transform:uppercase;font-weight:800;letter-spacing:0.5px;">⚡ LOBBY RADAR STATUS</div>'
+            f'<div style="font-size:13px;color:var(--theme-text-primary);margin-top:4px;font-weight:700;">{unique_games} tracked ({on_sale_count} on sale) · {owned_count} owned</div>'
+            f'<div style="font-size:11px;color:var(--theme-text-muted);margin-top:2px;">Last synced: {last_sync}</div>'
+            f'<div style="font-size:11px;color:var(--theme-text-muted);margin-top:4px;">⏱️ Last auto refresh: <strong>{last_refresh_disp}</strong></div>'
+            f'<div style="font-size:11px;color:var(--theme-text-muted);margin-top:2px;">⏳ Next refresh: <strong>{next_refresh_disp}</strong></div>'
+            f'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--theme-border-color);font-size:11.5px;color:var(--theme-accent-primary);font-weight:800;">'
+            f'{active_t["icon"]} {active_t["name"]}'
             f'</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
     # ── Top Bar Header ───────────────────────────────────────
-    tb_col1, tb_col2 = st.columns([3.5, 1.4])
+    tb_col1, tb_col2 = st.columns([3.2, 1.8])
     with tb_col1:
         st.markdown(
-            f'<div style="font-size:22px;font-weight:800;color:var(--theme-text-primary);letter-spacing:-0.02em;">{nav_choice}</div>',
+            f'<div style="font-size:22px;font-weight:800;color:var(--theme-text-primary);letter-spacing:-0.02em;">{nav_choice}</div>'
+            f'<div style="font-size:11.5px;color:var(--theme-text-muted);margin-top:2px;">'
+            f'⏱️ Last automatic refresh: <strong>{last_refresh_disp}</strong> &nbsp;|&nbsp; ⏳ Next scheduled refresh: <strong>{next_refresh_disp}</strong>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with tb_col2:
@@ -2667,9 +2144,24 @@ def main():
             handle_refresh_all(games, gh)
 
     # ── Main View Routing ────────────────────────────────────
-    st.markdown('<div class="main-view-container">', unsafe_allow_html=True)
     if nav_choice == "🏠 Dashboard":
-        render_dashboard_view(games, history, gh)
+        render_dashboard(
+            games=games,
+            theme=get_theme(active_theme_id),
+            stats={
+                "tracked": unique_games,
+                "on_sale": on_sale_count,
+                "owned": owned_count,
+                "price_drops": on_sale_count,
+                "last_synced": last_sync,
+                "last_automatic_refresh": last_refresh_disp,
+                "next_scheduled_refresh": next_refresh_disp,
+            },
+            purchased_games=purchased_games,
+            history=history,
+            gh=gh,
+            currency="₹",
+        )
     elif nav_choice == "🔍 Search Games":
         render_search_view(games, gh)
     elif nav_choice == "🎮 Tracked Games":
@@ -2686,8 +2178,6 @@ def main():
         render_reports_view(games, history, gh)
     elif nav_choice == "⚙️ Settings":
         render_settings_view(games, gh)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
+    
 if __name__ == "__main__":
     main()

@@ -1,6 +1,7 @@
 import json
 import logging
 from copy import deepcopy
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Any
 
 from utils import today_str, convert_price, usd_to_inr, canonical_game_id, generate_game_id
@@ -1087,6 +1088,69 @@ def calculate_total_spending(purchased_games: list[dict[str, Any]]) -> float:
             except (ValueError, TypeError):
                 pass
     return round(total, 2)
+
+
+# ── Refresh Status & Schedule Functions ──────────────────────────────────
+
+DEFAULT_REFRESH_STATUS = {
+    "last_automatic_refresh": None,
+    "next_scheduled_refresh": None,
+    "status": "idle",
+    "games_checked": 0,
+    "successful_checks": 0,
+    "failed_checks": 0,
+    "refresh_interval_hours": 6,
+}
+
+
+def load_refresh_status(content: str) -> dict[str, Any]:
+    """Parse refresh_status.json safely, falling back to defaults."""
+    if not content or not content.strip():
+        return deepcopy(DEFAULT_REFRESH_STATUS)
+    try:
+        data = json.loads(content)
+        if isinstance(data, dict):
+            merged = deepcopy(DEFAULT_REFRESH_STATUS)
+            merged.update(data)
+            return merged
+        return deepcopy(DEFAULT_REFRESH_STATUS)
+    except Exception as e:
+        logger.error("Failed to parse refresh_status.json: %s", e)
+        return deepcopy(DEFAULT_REFRESH_STATUS)
+
+
+def dump_refresh_status(status: dict[str, Any]) -> str:
+    """Serialize refresh status dict to formatted JSON."""
+    return json.dumps(status, indent=2, ensure_ascii=False)
+
+
+def calculate_next_refresh(last_refresh_str: Optional[str] = None, interval_hours: int = 6) -> tuple[str, str]:
+    """Calculate clean human-readable strings for last and next scheduled refresh.
+
+    Returns (last_display, next_display).
+    """
+    now = datetime.now(timezone.utc)
+    if last_refresh_str:
+        try:
+            cleaned = last_refresh_str.replace("Z", "+00:00")
+            last_dt = datetime.fromisoformat(cleaned)
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+            next_dt = last_dt + timedelta(hours=interval_hours)
+            last_disp = last_dt.strftime("%d %b %Y, %H:%M UTC")
+            next_disp = next_dt.strftime("%d %b %Y, %H:%M UTC")
+            return last_disp, next_disp
+        except Exception:
+            pass
+
+    last_disp = "Pending first run"
+    next_hour = ((now.hour // interval_hours) + 1) * interval_hours
+    if next_hour >= 24:
+        next_dt = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    else:
+        next_dt = now.replace(hour=next_hour, minute=0, second=0, microsecond=0)
+    next_disp = next_dt.strftime("%d %b %Y, %H:%M UTC")
+    return last_disp, next_disp
 
 
 

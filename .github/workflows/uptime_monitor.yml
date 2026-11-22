@@ -1,0 +1,74 @@
+name: Uptime Monitor & Health Ping
+
+on:
+  schedule:
+    # Hourly ping to verify uptime and detect outages
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping-health:
+    name: Ping Health Endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Application Health Endpoint
+        shell: bash
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          set -e
+          if [ -z "$APP_URL" ]; then
+            echo "⚠️ APP_URL secret is not configured in this repository."
+            echo "Please set secret APP_URL (e.g. https://your-gametracker.streamlit.app) to enable automated hourly pings."
+            echo "### ⚠️ Uptime Monitor Notice" >> $GITHUB_STEP_SUMMARY
+            echo "Secret \`APP_URL\` is not set in repository secrets. Add your app URL to enable automated health pings." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          # Strip trailing slashes
+          CLEAN_URL="${APP_URL%/}"
+          
+          # Health endpoint: test ?health=1 (Streamlit compatible) or /health
+          TARGET_URL="${CLEAN_URL}/?health=1"
+          echo "Pinging health endpoint: $TARGET_URL"
+          
+          START_TIME=$(date +%s%3N)
+          HTTP_RESPONSE=$(curl -sSL -w "\n%{http_code}\n%{time_total}" -o /tmp/health_response.json "$TARGET_URL" || true)
+          END_TIME=$(date +%s%3N)
+          
+          HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n 2 | head -n 1)
+          CURL_TIME=$(echo "$HTTP_RESPONSE" | tail -n 1)
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Curl Response Time: ${CURL_TIME}s"
+          echo "Raw response:"
+          cat /tmp/health_response.json || true
+          echo ""
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            # Retry with /health in case running container/standalone
+            ALT_URL="${CLEAN_URL}/health"
+            echo "Retrying with alternate path: $ALT_URL"
+            HTTP_RESPONSE=$(curl -sSL -w "\n%{http_code}\n%{time_total}" -o /tmp/health_response.json "$ALT_URL" || true)
+            HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n 2 | head -n 1)
+          fi
+
+          # Markdown summary for GitHub Actions tab
+          echo "### 🎮 GameTracker Uptime Ping Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target URL:** \`$TARGET_URL\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **HTTP Status:** \`$HTTP_STATUS\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Response Time:** \`${CURL_TIME}s\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** \`$(date -u '+%Y-%m-%d %H:%M:%S UTC')\`" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "- **Health Check:** ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/health_response.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "Health check succeeded with status 200."
+          else
+            echo "- **Health Check:** ❌ FAILED (Status $HTTP_STATUS)" >> $GITHUB_STEP_SUMMARY
+            echo "::error::Health check failed with status $HTTP_STATUS"
+            exit 1
+          fi

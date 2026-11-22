@@ -1,4 +1,5 @@
 import logging
+import random
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ THEMES: dict[str, dict[str, Any]] = {
         "sale_color": "#e04870",
         "sale_bg": "rgba(224, 72, 112, 0.12)",
         "warning_color": "#ff4d6d",
-        "btn_primary_bg": "#ff85a2",
+        "btn_primary_bg": "#c2185b",
         "btn_primary_text": "#ffffff",
         "btn_secondary_bg": "#fce4ec",
         "btn_secondary_text": "#2d1732",
@@ -176,7 +177,7 @@ THEMES: dict[str, dict[str, Any]] = {
         "sale_color": "#00a86b",
         "sale_bg": "rgba(0, 168, 107, 0.12)",
         "warning_color": "#e11d48",
-        "btn_primary_bg": "#00a86b",
+        "btn_primary_bg": "#047857",
         "btn_primary_text": "#ffffff",
         "btn_secondary_bg": "#f3ece0",
         "btn_secondary_text": "#1c1917",
@@ -361,7 +362,7 @@ THEMES: dict[str, dict[str, Any]] = {
         "sale_color": "#0284c7",
         "sale_bg": "rgba(2, 132, 199, 0.12)",
         "warning_color": "#f472b6",
-        "btn_primary_bg": "#c084fc",
+        "btn_primary_bg": "#9333ea",
         "btn_primary_text": "#ffffff",
         "btn_secondary_bg": "#f3e8ff",
         "btn_secondary_text": "#3b1d54",
@@ -435,7 +436,7 @@ THEMES: dict[str, dict[str, Any]] = {
         "sale_color": "#059669",
         "sale_bg": "rgba(5, 150, 105, 0.12)",
         "warning_color": "#ef4444",
-        "btn_primary_bg": "#d97706",
+        "btn_primary_bg": "#b45309",
         "btn_primary_text": "#ffffff",
         "btn_secondary_bg": "#f4e8d7",
         "btn_secondary_text": "#362215",
@@ -564,19 +565,1020 @@ THEMES: dict[str, dict[str, Any]] = {
 }
 
 
+# Sample / reference dashboard styling tokens
+DASHBOARD_STYLE = {
+    "background": "#F7F5EF",
+    "surface": "#FFFEFA",
+    "surface_secondary": "#E9EEE6",
+    "text": "#172B25",
+    "text_muted": "#68766E",
+    "primary": "#1E5B45",
+    "primary_hover": "#174735",
+    "accent": "#FF7A45",
+    "highlight": "#F4C95D",
+    "border": "#DFE5DB",
+    "card_radius": "22px",
+    "button_radius": "14px",
+    "shadow": "0 12px 32px rgba(27, 54, 42, 0.07)",
+}
+
+
 def get_theme(theme_id: str) -> dict[str, Any]:
     return THEMES.get(theme_id, THEMES["midnight_gamer"])
 
 
+def get_dashboard_tokens(theme: dict[str, Any]) -> dict[str, str]:
+    """Extract or compute dashboard design tokens for a given theme dict with sensible fallbacks."""
+    return {
+        "background": theme.get("background") or theme.get("bg_body") or "#0f172a",
+        "surface": theme.get("surface") or theme.get("bg_card") or "#1e293b",
+        "surface_secondary": theme.get("surface_secondary") or theme.get("bg_card_elevated") or theme.get("bg_sidebar") or "#334155",
+        "text": theme.get("text") or theme.get("text_primary") or "#f8fafc",
+        "text_muted": theme.get("text_muted") or "#94a3b8",
+        "primary": theme.get("primary") or theme.get("btn_primary_bg") or theme.get("accent_primary") or "#6366f1",
+        "primary_hover": theme.get("primary_hover") or theme.get("border_hover") or theme.get("accent_secondary") or "#4f46e5",
+        "accent": theme.get("accent") or theme.get("accent_primary") or theme.get("sale_color") or "#818cf8",
+        "highlight": theme.get("highlight") or theme.get("warning_color") or theme.get("sale_color") or "#f4c95d",
+        "border": theme.get("border") or theme.get("border_color") or "#3b4f73",
+        "card_radius": theme.get("card_radius") or "12px",
+        "button_radius": theme.get("button_radius") or "8px",
+        "shadow": theme.get("shadow") or theme.get("shadow_card") or "0 8px 24px rgba(15, 23, 42, 0.5)",
+    }
+
+
+def generate_dashboard_css(
+    theme: dict[str, Any],
+    particle_css: str = "",
+) -> str:
+    """Expose one theme's real tokens and paint the entire Streamlit app with an original playful gaming identity."""
+    t = theme
+    font_family = t.get("font_family") or "'Fredoka', 'Quicksand', 'Inter', -apple-system, sans-serif"
+    mode = t.get("mode") or "dark"
+
+    def token(key: str, fallback: str) -> str:
+        value = t.get(key)
+        return str(value) if value not in (None, "") else fallback
+
+    return f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    :root {{
+        --theme-mode: {mode};
+        --theme-bg-body: {token("bg_body", "#0f172a")};
+        --theme-bg-sidebar: {token("bg_sidebar", "#162032")};
+        --theme-bg-card: {token("bg_card", "#27354a")};
+        --theme-bg-card-elevated: {token("bg_card_elevated", "#405575")};
+        --theme-bg-input: {token("bg_input", "#1c283c")};
+        --theme-text-primary: {token("text_primary", "#f8fafc")};
+        --theme-text-secondary: {token("text_secondary", "#cbd5e1")};
+        --theme-text-muted: {token("text_muted", "#94a3b8")};
+        --theme-border-color: {token("border_color", "#3b4f73")};
+        --theme-border-subtle: {token("border_subtle", "#273752")};
+        --theme-border-hover: {token("border_hover", "#818cf8")};
+        --theme-accent-primary: {token("accent_primary", "#818cf8")};
+        --theme-accent-secondary: {token("accent_secondary", "#38bdf8")};
+        --theme-accent-bg: {token("accent_bg", "rgba(129, 140, 248, 0.22)")};
+        --theme-sale: {token("sale_color", "#4ade80")};
+        --theme-sale-bg: {token("sale_bg", "rgba(74, 222, 128, 0.22)")};
+        --theme-warning: {token("warning_color", "#ef4444")};
+        --theme-btn-primary-bg: {token("btn_primary_bg", "#6366f1")};
+        --theme-btn-primary-text: {token("btn_primary_text", "#ffffff")};
+        --theme-btn-secondary-bg: {token("btn_secondary_bg", "#32445e")};
+        --theme-btn-secondary-text: {token("btn_secondary_text", "#f8fafc")};
+        --theme-shadow-card: {token("shadow_card", "0 8px 24px rgba(15, 23, 42, 0.5)")};
+        --theme-shadow-hover: {token("shadow_hover", "0 12px 32px rgba(129, 140, 248, 0.35)")};
+        --theme-card-radius: {token("card_radius", "20px")};
+        --theme-button-radius: {token("button_radius", "14px")};
+        --theme-input-radius: {token("input_radius", "14px")};
+        --theme-font-family: {font_family};
+
+        --dashboard-bg: var(--theme-bg-body);
+        --dashboard-surface: var(--theme-bg-card);
+        --dashboard-surface-secondary: var(--theme-bg-card-elevated);
+        --dashboard-text: var(--theme-text-primary);
+        --dashboard-muted: var(--theme-text-muted);
+        --dashboard-primary: var(--theme-btn-primary-bg);
+        --dashboard-primary-hover: var(--theme-border-hover);
+        --dashboard-accent: var(--theme-accent-primary);
+        --dashboard-highlight: var(--theme-sale);
+        --dashboard-border: var(--theme-border-color);
+        --dashboard-card-radius: var(--theme-card-radius);
+        --dashboard-button-radius: var(--theme-button-radius);
+        --dashboard-shadow: var(--theme-shadow-card);
+    }}
+
+    /* Global App Container */
+    html, body, .stApp {{
+        color-scheme: {mode};
+        font-family: var(--theme-font-family) !important;
+    }}
+
+    .stApp, [data-testid="stAppViewContainer"], .stAppViewContainer, section.main, .main, [data-testid="stMain"], div[data-testid="stAppViewMain"] {{
+        background: var(--theme-bg-body) !important;
+        color: var(--theme-text-primary) !important;
+        font-family: var(--theme-font-family) !important;
+        transition: background 0.3s ease, color 0.3s ease;
+    }}
+
+    .block-container {{
+        background: transparent !important;
+        padding: 1.5rem 1.5rem 3.5rem !important;
+        max-width: 1400px !important;
+        margin: 0 auto;
+    }}
+
+    #MainMenu, footer {{ display: none !important; }}
+    header[data-testid="stHeader"] {{
+        background: transparent !important;
+        z-index: 100 !important;
+    }}
+    button[data-testid="stSidebarCollapseButton"], button[data-testid="baseButton-headerNoPadding"] {{
+        color: var(--theme-text-primary) !important;
+        background: var(--theme-bg-card) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.12) !important;
+    }}
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 {{
+        color: var(--theme-text-primary) !important;
+        font-family: 'Fredoka', 'Quicksand', 'Inter', -apple-system, sans-serif !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem 0;
+    }}
+
+    p, span, div, label, .stMarkdown p, .stMarkdown li, [data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li {{
+        color: var(--theme-text-primary);
+        font-family: var(--theme-font-family);
+    }}
+
+    .text-muted, .sub-text, .empty-sub {{
+        color: var(--theme-text-muted) !important;
+    }}
+
+    /* ── PLAYFUL TACTILE 3D BUTTONS (skribbl-inspired) ── */
+    div.stButton > button[kind="primary"],
+    div.stButton > button[data-testid="baseButton-primary"],
+    div.stFormSubmitButton > button {{
+        background: var(--theme-btn-primary-bg) !important;
+        color: var(--theme-btn-primary-text) !important;
+        border: 2px solid var(--theme-btn-primary-bg) !important;
+        border-radius: var(--theme-button-radius, 14px) !important;
+        font-weight: 800 !important;
+        font-size: 14px !important;
+        padding: 9px 20px !important;
+        min-height: 42px !important;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.22) !important;
+        cursor: pointer !important;
+        transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, border-color 0.15s ease !important;
+    }}
+
+    div.stButton > button[kind="primary"] *,
+    div.stButton > button[data-testid="baseButton-primary"] *,
+    div.stFormSubmitButton > button * {{
+        color: var(--theme-btn-primary-text) !important;
+        font-weight: 800 !important;
+    }}
+
+    div.stButton > button[kind="primary"]:hover,
+    div.stButton > button[data-testid="baseButton-primary"]:hover,
+    div.stFormSubmitButton > button:hover {{
+        background: var(--theme-border-hover) !important;
+        border-color: var(--theme-border-hover) !important;
+        color: var(--theme-btn-primary-text) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 0 rgba(0,0,0,0.26), var(--theme-shadow-hover) !important;
+    }}
+
+    div.stButton > button[kind="primary"]:active,
+    div.stButton > button[data-testid="baseButton-primary"]:active,
+    div.stFormSubmitButton > button:active {{
+        transform: translateY(2px) !important;
+        box-shadow: 0 1px 0 rgba(0,0,0,0.22) !important;
+    }}
+
+    div.stButton > button,
+    div.stButton > button[kind="secondary"],
+    div.stDownloadButton > button,
+    div.stLinkButton > a {{
+        background: var(--theme-btn-secondary-bg) !important;
+        color: var(--theme-btn-secondary-text) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: var(--theme-button-radius, 14px) !important;
+        font-weight: 700 !important;
+        font-size: 13.5px !important;
+        padding: 8px 18px !important;
+        min-height: 40px !important;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.14) !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, border-color 0.15s ease !important;
+    }}
+
+    div.stButton > button *,
+    div.stDownloadButton > button *,
+    div.stLinkButton > a * {{
+        color: inherit !important;
+        font-weight: 700 !important;
+    }}
+
+    div.stButton > button:hover,
+    div.stDownloadButton > button:hover,
+    div.stLinkButton > a:hover {{
+        background: var(--theme-bg-card-elevated) !important;
+        border-color: var(--theme-border-hover) !important;
+        color: var(--theme-text-primary) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 0 rgba(0,0,0,0.18) !important;
+    }}
+
+    div.stButton > button:active,
+    div.stDownloadButton > button:active,
+    div.stLinkButton > a:active {{
+        transform: translateY(2px) !important;
+        box-shadow: 0 1px 0 rgba(0,0,0,0.14) !important;
+    }}
+
+    /* ── FORM INPUTS & DROPDOWNS ── */
+    .stTextInput input, .stNumberInput input, .stTextArea textarea {{
+        background: var(--theme-bg-input) !important;
+        color: var(--theme-text-primary) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: var(--theme-input-radius, 14px) !important;
+        padding: 10px 14px !important;
+        font-size: 14px !important;
+        font-family: var(--theme-font-family) !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    }}
+
+    .stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus {{
+        border-color: var(--theme-accent-primary) !important;
+        box-shadow: 0 0 0 3px var(--theme-accent-bg) !important;
+    }}
+
+    .stTextInput input::placeholder {{
+        color: var(--theme-text-muted) !important;
+    }}
+
+    div[data-baseweb="select"] > div {{
+        background-color: var(--theme-bg-input) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: var(--theme-input-radius, 14px) !important;
+        color: var(--theme-text-primary) !important;
+    }}
+
+    div[data-baseweb="select"] span, div[data-baseweb="select"] div, div[data-baseweb="select"] svg {{
+        color: var(--theme-text-primary) !important;
+        fill: var(--theme-text-primary) !important;
+    }}
+
+    [data-baseweb="popover"], [data-baseweb="menu"], ul[role="listbox"], [data-baseweb="popover"] > div,
+    [data-testid="stPopoverBody"], div[data-testid="stPopover"] {{
+        background-color: var(--theme-bg-card) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: 16px !important;
+        color: var(--theme-text-primary) !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
+    }}
+
+    [data-baseweb="option"], li[role="option"] {{
+        background-color: var(--theme-bg-card) !important;
+        color: var(--theme-text-primary) !important;
+        font-family: var(--theme-font-family) !important;
+    }}
+
+    [data-baseweb="option"]:hover, [data-baseweb="option"][aria-selected="true"], li[role="option"]:hover {{
+        background-color: var(--theme-bg-card-elevated) !important;
+        color: var(--theme-accent-primary) !important;
+    }}
+
+    /* ── EXPANDERS ── */
+    [data-testid="stExpander"], details[data-testid="stExpander"] {{
+        background-color: var(--theme-bg-card) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: 18px !important;
+        color: var(--theme-text-primary) !important;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.08) !important;
+        margin-bottom: 14px !important;
+    }}
+
+    summary[data-testid="stExpanderSummary"], [data-testid="stExpanderSummary"] {{
+        background-color: var(--theme-bg-card) !important;
+        color: var(--theme-text-primary) !important;
+        border-radius: 18px !important;
+    }}
+
+    summary[data-testid="stExpanderSummary"]:hover {{
+        background-color: var(--theme-bg-card-elevated) !important;
+    }}
+
+    summary[data-testid="stExpanderSummary"] span, summary[data-testid="stExpanderSummary"] p {{
+        color: var(--theme-text-primary) !important;
+        font-weight: 700 !important;
+    }}
+
+    /* ── RADIO BUTTONS & TABS ── */
+    div[data-testid="stRadio"] label {{
+        background: var(--theme-bg-card) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: 14px !important;
+        color: var(--theme-text-secondary) !important;
+        font-weight: 600 !important;
+        padding: 6px 14px !important;
+        transition: all 0.15s ease !important;
+    }}
+
+    div[data-testid="stRadio"] label:hover {{
+        border-color: var(--theme-border-hover) !important;
+        color: var(--theme-text-primary) !important;
+    }}
+
+    div[data-testid="stRadio"] label:has(input:checked) {{
+        background: var(--theme-accent-bg) !important;
+        border-color: var(--theme-accent-primary) !important;
+        color: var(--theme-accent-primary) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 2px 0 var(--theme-accent-primary) !important;
+    }}
+
+    /* ── SIDEBAR NAVIGATION ── */
+    section[data-testid="stSidebar"], div[data-testid="stSidebarContent"],
+    section[data-testid="stSidebar"] > div {{
+        background: var(--theme-bg-sidebar) !important;
+        color: var(--theme-text-primary) !important;
+        border-right: 2px solid var(--theme-border-color) !important;
+    }}
+
+    .sidebar-brand {{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 4px 14px;
+        margin-bottom: 14px;
+        border-bottom: 2px solid var(--theme-border-color);
+    }}
+
+    .sidebar-brand-icon {{
+        font-size: 26px;
+        transition: transform 0.25s ease;
+        display: inline-block;
+    }}
+
+    .sidebar-brand:hover .sidebar-brand-icon {{
+        transform: scale(1.2) rotate(-8deg);
+    }}
+
+    .sidebar-brand-title {{
+        font-size: 19px;
+        font-weight: 900;
+        color: var(--theme-text-primary) !important;
+        letter-spacing: -0.03em;
+        font-family: 'Fredoka', 'Inter', sans-serif !important;
+        line-height: 1.1;
+    }}
+
+    .sidebar-brand-subtitle {{
+        font-size: 11px;
+        color: var(--theme-text-muted) !important;
+        font-weight: 600;
+        margin-top: 2px;
+    }}
+
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] > div {{
+        gap: 6px !important;
+        width: 100% !important;
+    }}
+
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label {{
+        background: var(--theme-bg-card) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: 14px !important;
+        padding: 9px 13px !important;
+        color: var(--theme-text-secondary) !important;
+        font-weight: 700;
+        font-size: 13.5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        width: 100% !important;
+        margin: 0 !important;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.08) !important;
+        transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    }}
+
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
+        background: var(--theme-bg-card-elevated) !important;
+        border-color: var(--theme-border-hover) !important;
+        color: var(--theme-text-primary) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 0 rgba(0,0,0,0.12) !important;
+    }}
+
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {{
+        background: var(--theme-accent-bg) !important;
+        border-color: var(--theme-accent-primary) !important;
+        color: var(--theme-accent-primary) !important;
+        font-weight: 800;
+        box-shadow: 0 3px 0 var(--theme-accent-primary) !important;
+    }}
+
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label > div:first-child {{
+        display: none !important;
+    }}
+
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label > div:last-child {{
+        width: 100% !important;
+        color: inherit !important;
+    }}
+
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label p {{
+        font-size: 13.5px !important;
+        margin: 0 !important;
+        color: inherit !important;
+        font-weight: inherit !important;
+        white-space: nowrap !important;
+    }}
+
+    .sidebar-status-card {{
+        background: var(--theme-bg-card) !important;
+        border: 2px solid var(--theme-border-color) !important;
+        border-radius: 16px !important;
+        padding: 12px 14px;
+        margin-top: 18px;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.08) !important;
+    }}
+
+    /* ── GAMING LOBBY COMPONENTS ── */
+    .lobby-hero {{
+        background: var(--theme-bg-card);
+        border: 2.5px solid var(--theme-border-color);
+        border-radius: 24px;
+        padding: 26px 30px 22px;
+        margin-bottom: 22px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 6px 0 rgba(0,0,0,0.12), var(--theme-shadow-card);
+    }}
+
+    .lobby-hero-title {{
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--theme-text-primary);
+        line-height: 1.2;
+        letter-spacing: -0.03em;
+        font-family: 'Fredoka', 'Inter', sans-serif !important;
+        margin: 0 0 6px 0;
+    }}
+
+    .lobby-hero-sub {{
+        font-size: 14.5px;
+        color: var(--theme-text-secondary);
+        font-weight: 500;
+        margin: 0 0 16px 0;
+        line-height: 1.4;
+    }}
+
+    .lobby-chips {{
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }}
+
+    .lobby-chip {{
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--theme-bg-card-elevated);
+        border: 2px solid var(--theme-border-color);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--theme-text-primary);
+        box-shadow: 0 2px 0 rgba(0,0,0,0.08);
+    }}
+
+    .arcade-pad-grid {{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }}
+
+    .arcade-pad {{
+        background: var(--theme-bg-card);
+        border: 2.5px solid var(--theme-border-color);
+        border-radius: 18px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+        cursor: pointer;
+    }}
+
+    .arcade-pad:hover {{
+        transform: translateY(-3px);
+        border-color: var(--theme-border-hover);
+        box-shadow: 0 7px 0 rgba(0,0,0,0.14), var(--theme-shadow-hover);
+    }}
+
+    .arcade-icon {{
+        font-size: 24px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--theme-accent-bg);
+        border-radius: 12px;
+        flex-shrink: 0;
+    }}
+
+    .arcade-label {{
+        font-size: 13.5px;
+        font-weight: 800;
+        color: var(--theme-text-primary);
+        font-family: 'Fredoka', 'Inter', sans-serif !important;
+        margin-bottom: 2px;
+    }}
+
+    .arcade-sub {{
+        font-size: 11px;
+        color: var(--theme-text-muted);
+        font-weight: 600;
+    }}
+
+    .stat-pods-grid {{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }}
+
+    .stat-pod {{
+        background: var(--theme-bg-card);
+        border: 2.5px solid var(--theme-border-color);
+        border-radius: 20px;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }}
+
+    .stat-pod:hover {{
+        transform: translateY(-3px);
+        border-color: var(--theme-border-hover);
+        box-shadow: 0 7px 0 rgba(0,0,0,0.14);
+    }}
+
+    .stat-pod-icon {{
+        font-size: 24px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--theme-accent-bg);
+        border-radius: 12px;
+        flex-shrink: 0;
+    }}
+
+    .stat-pod-label {{
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--theme-text-muted);
+        margin-bottom: 2px;
+    }}
+
+    .stat-pod-val {{
+        font-size: 24px;
+        font-weight: 900;
+        color: var(--theme-text-primary);
+        font-family: 'Fredoka', 'Inter', sans-serif !important;
+        line-height: 1;
+    }}
+
+    .stat-pod-val.sale {{ color: var(--theme-sale) !important; }}
+    .stat-pod-val.accent {{ color: var(--theme-accent-primary) !important; }}
+
+    /* ── GAME CARDS (skribbl-inspired rounded bubbly cards) ── */
+    .game-card, .game-card-container, .game-card-wrapper, .search-result-card {{
+        background: var(--theme-bg-card) !important;
+        border: 2.5px solid var(--theme-border-color) !important;
+        border-radius: 22px !important;
+        padding: 18px 20px !important;
+        margin-bottom: 18px !important;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.1), var(--theme-shadow-card) !important;
+        transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                    border-color 0.2s ease,
+                    box-shadow 0.2s ease !important;
+    }}
+
+    .game-card:hover, .game-card-container:hover, .game-card-wrapper:hover, .search-result-card:hover {{
+        transform: translateY(-4px) !important;
+        border-color: var(--theme-border-hover) !important;
+        box-shadow: 0 8px 0 rgba(0,0,0,0.14), var(--theme-shadow-hover) !important;
+    }}
+
+    .game-card-wrapper.on-sale {{
+        border-left: 6px solid var(--theme-sale) !important;
+    }}
+
+    .card-layout-flex {{
+        display: flex;
+        gap: 18px;
+        align-items: flex-start;
+    }}
+
+    .card-art-col {{
+        flex: 0 0 190px;
+        max-width: 190px;
+    }}
+
+    .card-art-wrap {{
+        overflow: hidden;
+        border-radius: 14px;
+        aspect-ratio: 16 / 9;
+        background: var(--theme-bg-card-elevated);
+        border: 1.5px solid var(--theme-border-subtle);
+        position: relative;
+    }}
+
+    .card-art-img {{
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.35s ease;
+    }}
+
+    .game-card-wrapper:hover .card-art-img {{
+        transform: scale(1.06) rotate(-0.5deg);
+    }}
+
+    .card-info-col {{
+        flex: 1;
+        min-width: 0;
+    }}
+
+    .card-title-row {{
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+    }}
+
+    .card-game-title {{
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--theme-text-primary);
+        font-family: 'Fredoka', 'Inter', sans-serif !important;
+        line-height: 1.3;
+    }}
+
+    /* ── BADGES & TAGS ── */
+    .store-tag {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 8px;
+        border: 1.5px solid var(--theme-border-color);
+        background: var(--theme-bg-card-elevated);
+        color: var(--theme-text-primary);
+    }}
+
+    .store-tag.steam {{
+        border-color: #0ea5e9;
+        color: #0284c7;
+        background: rgba(14, 165, 233, 0.15);
+    }}
+
+    .store-tag.epic {{
+        border-color: #8b5cf6;
+        color: #7c3aed;
+        background: rgba(139, 92, 246, 0.15);
+    }}
+
+    .store-tag.gog {{
+        border-color: #f59e0b;
+        color: #d97706;
+        background: rgba(245, 158, 11, 0.15);
+    }}
+
+    .disc-tag, .flame-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: linear-gradient(135deg, #ef4444, #f97316);
+        color: #ffffff !important;
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 12px;
+        font-weight: 900;
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+        animation: pulseDeal 2.5s infinite;
+    }}
+
+    .target-met-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #ffffff !important;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-weight: 800;
+        font-size: 11px;
+        animation: pulseDeal 2s infinite;
+    }}
+
+    .owned-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #ffffff !important;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-weight: 800;
+        font-size: 11px;
+    }}
+
+    .lowest-price-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--theme-sale-bg);
+        border: 1.5px solid var(--theme-sale);
+        color: var(--theme-sale);
+        border-radius: 8px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 700;
+    }}
+
+    .best-deal-callout {{
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        color: var(--theme-sale) !important;
+        background: var(--theme-sale-bg) !important;
+        border: 1.5px solid var(--theme-sale) !important;
+        border-radius: 10px !important;
+        padding: 6px 14px !important;
+    }}
+
+    .price-orig-strike {{
+        font-size: 13px !important;
+        color: var(--theme-text-muted) !important;
+        text-decoration: line-through !important;
+        margin-left: 8px !important;
+    }}
+
+    .compare-section {{
+        background: var(--theme-bg-card-elevated);
+        border: 1.5px solid var(--theme-border-color);
+        border-radius: 14px;
+        padding: 12px 16px;
+        margin: 10px 0;
+    }}
+
+    .compare-columns-grid {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }}
+
+    .compare-store-item {{
+        display: flex;
+        flex-direction: column;
+    }}
+
+    .compare-price-val {{
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--theme-text-primary);
+        margin-top: 4px;
+        font-family: 'Fredoka', 'Inter', sans-serif;
+    }}
+
+    .compare-price-val.sale {{
+        color: var(--theme-sale) !important;
+    }}
+
+    /* ── EMPTY STATES ── */
+    .empty-box {{
+        text-align: center !important;
+        padding: 44px 24px !important;
+        background: var(--theme-bg-card) !important;
+        border: 2.5px dashed var(--theme-border-color) !important;
+        border-radius: 22px !important;
+        color: var(--theme-text-muted) !important;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.06) !important;
+    }}
+
+    .empty-icon {{
+        font-size: 46px !important;
+        margin-bottom: 10px !important;
+        animation: floatGamer 3s infinite ease-in-out;
+    }}
+
+    .empty-title {{
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        color: var(--theme-text-primary) !important;
+        margin-bottom: 6px !important;
+        font-family: 'Fredoka', 'Inter', sans-serif !important;
+    }}
+
+    .empty-sub {{
+        font-size: 13.5px !important;
+        color: var(--theme-text-secondary) !important;
+        max-width: 460px;
+        margin: 0 auto;
+        line-height: 1.5;
+    }}
+
+    /* ── CELEBRATION BANNER ── */
+    .celebration-banner {{
+        background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,182,212,0.18));
+        border: 2px solid var(--theme-sale);
+        border-radius: 18px;
+        padding: 14px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 4px 16px rgba(16,185,129,0.2);
+        animation: confettiPop 0.5s ease-out;
+    }}
+
+    /* ── SUMMARY STAT CARDS ── */
+    .summary-cards-container {{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }}
+
+    .sum-card {{
+        background: var(--theme-bg-card) !important;
+        border: 2.5px solid var(--theme-border-color) !important;
+        border-radius: 18px !important;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 4px 0 rgba(0,0,0,0.08) !important;
+        transition: transform 0.2s ease, border-color 0.2s ease !important;
+    }}
+
+    .sum-card:hover {{
+        transform: translateY(-2px) !important;
+        border-color: var(--theme-border-hover) !important;
+        box-shadow: 0 6px 0 rgba(0,0,0,0.12) !important;
+    }}
+
+    .sum-icon {{
+        font-size: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--theme-accent-bg) !important;
+        color: var(--theme-accent-primary) !important;
+    }}
+
+    .sum-info {{
+        display: flex;
+        flex-direction: column;
+    }}
+
+    .sum-label {{
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--theme-text-muted) !important;
+        margin-bottom: 2px;
+    }}
+
+    .sum-val {{
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--theme-text-primary) !important;
+        font-family: 'Fredoka', 'Inter', sans-serif !important;
+    }}
+
+    .sum-val.sale {{ color: var(--theme-sale) !important; }}
+    .sum-val.accent {{ color: var(--theme-accent-primary) !important; }}
+
+    /* ── ANIMATIONS ── */
+    @keyframes pulseDeal {{
+        0% {{ transform: scale(1); }}
+        50% {{ transform: scale(1.05); }}
+        100% {{ transform: scale(1); }}
+    }}
+
+    @keyframes floatGamer {{
+        0%, 100% {{ transform: translateY(0); }}
+        50% {{ transform: translateY(-5px); }}
+    }}
+
+    @keyframes confettiPop {{
+        0% {{ transform: scale(0.9); opacity: 0; }}
+        70% {{ transform: scale(1.03); }}
+        100% {{ transform: scale(1); opacity: 1; }}
+    }}
+
+    /* ── RESPONSIVENESS ── */
+    @media (max-width: 900px) {{
+        .card-layout-flex {{
+            flex-direction: column;
+            gap: 12px;
+        }}
+        .card-art-col {{
+            flex: 0 0 100%;
+            max-width: 100%;
+        }}
+        .arcade-pad-grid {{
+            grid-template-columns: repeat(2, 1fr);
+        }}
+        .stat-pods-grid {{
+            grid-template-columns: repeat(2, 1fr);
+        }}
+        .summary-cards-container {{
+            grid-template-columns: repeat(2, 1fr);
+        }}
+    }}
+
+    @media (max-width: 600px) {{
+        .block-container {{
+            padding: 0.75rem 0.75rem 2rem !important;
+        }}
+        .lobby-hero {{
+            padding: 20px 16px;
+        }}
+        .lobby-hero-title {{
+            font-size: 24px;
+        }}
+        .arcade-pad-grid {{
+            grid-template-columns: 1fr;
+        }}
+        .stat-pods-grid {{
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }}
+        .summary-cards-container {{
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }}
+        div.stButton > button {{
+            width: 100% !important;
+            min-height: 44px !important;
+        }}
+        body, html, .stApp {{
+            overflow-x: hidden !important;
+            max-width: 100vw !important;
+        }}
+    }}
+
+    {particle_css}
+    </style>
+    """
+
+
 def generate_theme_css(theme_id: str) -> str:
     t = get_theme(theme_id)
+    tokens = get_dashboard_tokens(t)
 
     # Particle Animations CSS
     particle_css = ""
     if t.get("particle_type") == "sakura":
         particle_css = """
         @media not (prefers-reduced-motion: reduce) {
-            .main-view-container::before {
+            [data-testid="stAppViewContainer"]::before {
                 content: '🌸';
                 position: fixed;
                 top: -20px;
@@ -594,30 +1596,31 @@ def generate_theme_css(theme_id: str) -> str:
         }
         """
     elif t.get("particle_type") == "stars":
-        particle_css = """
-        @media not (prefers-reduced-motion: reduce) {
-            .main-view-container::before {
+        accent_color = tokens["accent"]
+        particle_css = f"""
+        @media not (prefers-reduced-motion: reduce) {{
+            [data-testid="stAppViewContainer"]::before {{
                 content: '✦';
                 position: fixed;
                 top: 20%;
                 right: 10%;
                 font-size: 14px;
-                color: """ + t["accent_primary"] + """;
+                color: {accent_color};
                 opacity: 0.5;
                 animation: starTwinkle 4s ease-in-out infinite alternate;
                 pointer-events: none;
                 z-index: 0;
-            }
-            @keyframes starTwinkle {
-                0% { opacity: 0.15; transform: scale(0.8); }
-                100% { opacity: 0.85; transform: scale(1.3); }
-            }
-        }
+            }}
+            @keyframes starTwinkle {{
+                0% {{ opacity: 0.15; transform: scale(0.8); }}
+                100% {{ opacity: 0.85; transform: scale(1.3); }}
+            }}
+        }}
         """
     elif t.get("particle_type") == "embers":
         particle_css = """
         @media not (prefers-reduced-motion: reduce) {
-            .main-view-container::before {
+            [data-testid="stAppViewContainer"]::before {
                 content: '✨';
                 position: fixed;
                 bottom: 10%;
@@ -637,7 +1640,7 @@ def generate_theme_css(theme_id: str) -> str:
     elif t.get("particle_type") == "leaves":
         particle_css = """
         @media not (prefers-reduced-motion: reduce) {
-            .main-view-container::before {
+            [data-testid="stAppViewContainer"]::before {
                 content: '🍃';
                 position: fixed;
                 top: 10%;
@@ -655,147 +1658,8 @@ def generate_theme_css(theme_id: str) -> str:
         }
         """
 
-    return f"""
-    <style>
-    /* ── Global Theme CSS Design System Variables ────────────────── */
-    :root {{
-        --theme-mode: {t["mode"]};
-        --theme-bg-body: {t["bg_body"]};
-        --theme-bg-sidebar: {t["bg_sidebar"]};
-        --theme-bg-card: {t["bg_card"]};
-        --theme-bg-card-elevated: {t["bg_card_elevated"]};
-        --theme-bg-input: {t["bg_input"]};
-        --theme-text-primary: {t["text_primary"]};
-        --theme-text-secondary: {t["text_secondary"]};
-        --theme-text-muted: {t["text_muted"]};
-        --theme-border-color: {t["border_color"]};
-        --theme-border-subtle: {t["border_subtle"]};
-        --theme-border-hover: {t["border_hover"]};
-        --theme-accent-primary: {t["accent_primary"]};
-        --theme-accent-secondary: {t["accent_secondary"]};
-        --theme-accent-bg: {t["accent_bg"]};
-        --theme-sale: {t["sale_color"]};
-        --theme-sale-bg: {t["sale_bg"]};
-        --theme-warning: {t["warning_color"]};
-        --theme-btn-primary-bg: {t["btn_primary_bg"]};
-        --theme-btn-primary-text: {t["btn_primary_text"]};
-        --theme-btn-secondary-bg: {t["btn_secondary_bg"]};
-        --theme-btn-secondary-text: {t["btn_secondary_text"]};
-        --theme-shadow-card: {t["shadow_card"]};
-        --theme-shadow-hover: {t["shadow_hover"]};
-        --theme-card-radius: {t["card_radius"]};
-        --theme-button-radius: {t["button_radius"]};
-        --theme-input-radius: {t["input_radius"]};
-        --theme-font-family: {t["font_family"]};
-    }}
+    return generate_dashboard_css(t, particle_css=particle_css)
 
-    /* Global App Container */
-    .stApp, [data-testid="stAppViewContainer"], .stAppViewContainer, section.main, .main, [data-testid="stMain"], div[data-testid="stAppViewMain"] {{
-        background: {t["bg_body"]} !important;
-        color: {t["text_primary"]} !important;
-        font-family: {t["font_family"]} !important;
-        transition: background 0.35s ease-in-out, color 0.35s ease-in-out;
-    }}
-
-    .block-container {{
-        background: transparent !important;
-    }}
-
-    /* Sidebar */
-    [data-testid="stSidebar"], section[data-testid="stSidebar"] {{
-        background: {t["bg_sidebar"]} !important;
-        border-right: 1px solid {t["border_color"]} !important;
-    }}
-    .sidebar-brand-title {{
-        color: {t["text_primary"]} !important;
-        font-family: {t["font_family"]} !important;
-    }}
-    .sidebar-brand-subtitle {{
-        color: {t["text_muted"]} !important;
-    }}
-    .sidebar-status-card {{
-        background: {t["bg_card"]} !important;
-        border: 1px solid {t["border_color"]} !important;
-        border-radius: {t["card_radius"]} !important;
-    }}
-
-    /* Cards Treatment */
-    .game-card-container, .summary-card, .dashboard-metric-box, .search-hero-box {{
-        background: {t["bg_card"]} !important;
-        border: 1px solid {t["border_color"]} !important;
-        border-radius: {t["card_radius"]} !important;
-        box-shadow: {t["shadow_card"]} !important;
-        transition: transform 0.25s cubic-bezier(0.2, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease !important;
-    }}
-
-    .game-card-container:hover {{
-        transform: translateY(-3px) scale(1.01) !important;
-        border-color: {t["border_hover"]} !important;
-        box-shadow: {t["shadow_hover"]} !important;
-    }}
-
-    /* Text Colors */
-    h1, h2, h3, h4, .card-title, .sum-val {{
-        color: {t["text_primary"]} !important;
-        font-family: {t["font_family"]} !important;
-    }}
-
-    p, span, div, label {{
-        color: {t["text_secondary"]};
-    }}
-
-    .sum-label, .card-sub, .empty-sub {{
-        color: {t["text_muted"]} !important;
-    }}
-
-    /* Sale Badges */
-    .sale-badge {{
-        background: {t["sale_bg"]} !important;
-        color: {t["sale_color"]} !important;
-        border: 1px solid {t["sale_color"]} !important;
-        border-radius: 6px !important;
-        font-weight: 800 !important;
-    }}
-
-    /* Buttons */
-    .stButton > button[kind="primary"], .stButton > button[type="primary"] {{
-        background: {t["btn_primary_bg"]} !important;
-        color: {t["btn_primary_text"]} !important;
-        border: none !important;
-        border-radius: {t["button_radius"]} !important;
-        font-weight: 700 !important;
-        transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease !important;
-    }}
-
-    .stButton > button[kind="primary"]:hover {{
-        opacity: 0.92 !important;
-        transform: translateY(-1px) !important;
-    }}
-
-    .stButton > button[kind="secondary"], .stButton > button[type="secondary"] {{
-        background: {t["btn_secondary_bg"]} !important;
-        color: {t["btn_secondary_text"]} !important;
-        border: 1px solid {t["border_color"]} !important;
-        border-radius: {t["button_radius"]} !important;
-        font-weight: 600 !important;
-    }}
-
-    /* Inputs & Selectboxes */
-    .stTextInput > div > div > input, .stSelectbox > div > div {{
-        background: {t["bg_input"]} !important;
-        color: {t["text_primary"]} !important;
-        border: 1px solid {t["border_color"]} !important;
-        border-radius: {t["input_radius"]} !important;
-    }}
-
-    .stTextInput > div > div > input:focus {{
-        border-color: {t["accent_primary"]} !important;
-        box-shadow: 0 0 0 2px {t["accent_bg"]} !important;
-    }}
-
-    {particle_css}
-    </style>
-    """
 
 
 def get_contextual_message(

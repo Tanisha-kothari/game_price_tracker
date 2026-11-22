@@ -256,6 +256,141 @@ The app handles:
 - Missing secrets (shows configuration error)
 - Individual game check failures (continues with remaining games)
 
+## Automated Uptime Monitoring & Price Refresh
+
+GameTracker strictly decouples **Uptime Monitoring** from **Price Refreshing** to prevent unneeded API hits and keep the application awake and resilient.
+
+### 1. Health-Check Endpoint (`Part A`)
+GameTracker provides a zero-overhead, unauthenticated health endpoint that avoids touching GitHub, the database, or store APIs:
+- **Streamlit Web Route**: `https://<your-app>.streamlit.app/?health=1`
+- **Standalone/Container Route**: `http://localhost:8080/health`
+
+**Expected JSON Response:**
+```json
+{
+  "status": "healthy",
+  "service": "GameTracker",
+  "timestamp": "2026-11-22T09:15:00.000000+00:00",
+  "version": "1.0.0"
+}
+```
+
+### 2. External Uptime Monitoring (`Part B`)
+- **Streamlit Community Cloud Sleep Policy**: Streamlit Community Cloud automatically puts apps into sleep/hibernation mode after prolonged inactivity (typically 7 days without browser traffic). Free-tier apps wake upon new HTTP requests, but prolonged sleep shows an idle page.
+- **Hourly Ping Setup**:
+  - **Option 1: Built-in GitHub Action**: Configure secret `APP_URL` in your GitHub repository secrets (e.g. `https://your-app.streamlit.app`). The included `.github/workflows/uptime_monitor.yml` runs hourly (`0 * * * *`) to ping `/?health=1`, verify HTTP 200, log response times, and publish a report to GitHub Step Summary.
+  - **Option 2: External Monitor (UptimeRobot / Better Stack / Cron-Job.org)**:
+    1. Create a free HTTP monitor targeting `https://<your-app>.streamlit.app/?health=1` (or `/health`).
+    2. Set monitoring interval to **60 minutes** (or **15 minutes**).
+    3. Assert expected status `200` and keyword `"status": "healthy"`.
+
+### 3. Automated 6-Hour Price Refresh (`Part C`)
+- **Canonical Engine**: Both manual refreshes and scheduled jobs run through the exact same engine in `checker.py` (`run_price_check()`).
+- **Schedule**: Every 6 hours (`0 */6 * * *` at 00:00, 06:00, 12:00, and 18:00 UTC) via `.github/workflows/price_refresh.yml` and in-app APScheduler.
+- **Concurrency Locking**: Protected by `_refresh_lock` and GitHub Actions `concurrency: group: price-refresh-job` so overlapping jobs never run simultaneously.
+- **Resilience & Rate Limiting**:
+  - Polite 1.0s delay between store requests to respect Steam, Epic Games, and GOG rate limits.
+  - Per-game error isolation: if one store or game times out, other games continue checking normally.
+  - Valid prices are **never** overwritten with `None` on failed fetches.
+  - Persists `games.json`, `history.json`, and `refresh_status.json` via GitHubManager.
+- **Dashboard UI Status**:
+  - Displays **Last automatic refresh: [timestamp]**
+  - Displays **Next scheduled refresh: [timestamp]**
+  - Provides a prominent **🔄 Refresh All Prices** action button.
+
+## Discord Bot & WhatsApp Bot Assistant
+
+Interact with GameTracker without opening the web browser. Both bots consume the exact **same shared backend service layer (`bot_service.py`)** and access the real-time GitHub-synchronized game database.
+
+```
+                  ┌────────────────────────────────────────┐
+                  │   Shared Service Layer (bot_service)    │
+                  └───────────────────┬────────────────────┘
+                                      │
+            ┌─────────────────────────┼─────────────────────────┐
+            │                         │                         │
+            ▼                         ▼                         ▼
+   ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+   │  Streamlit Web  │       │   Discord Bot   │       │  WhatsApp Bot   │
+   │  Lobby & UI     │       │ (Slash Commands)│       │ (Meta Cloud API)│
+   └─────────────────┘       └─────────────────┘       └─────────────────┘
+```
+
+---
+
+### 1. Discord Bot (`discord_bot.py`)
+
+A full-featured gaming assistant bot utilizing modern Discord Slash Commands and rich embed layouts.
+
+#### Supported Slash Commands:
+- `/tracked`: Displays all tracked games on your radar with store badges and prices.
+- `/game <name>`: Detailed game inspection (artwork thumbnail, current price, lowest recorded, discount %, status, last checked, and direct "Open Store" button).
+- `/owned`: Displays games logged in My Library (Loot Vault) with acquisition date and price.
+- `/deals`: Lists all currently discounted games sorted by highest discount percentage.
+- `/search <query>`: Searches tracked collection by game title, store, or tag.
+- `/refresh`: Requests an immediate price refresh (protected by operator authorization and 5-minute cooldown).
+- `/help`: Displays the visual command guide.
+
+#### Discord Bot Setup:
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create a **New Application**.
+2. Navigate to **Bot** → click **Reset Token** to copy your bot token.
+3. In **OAuth2 → URL Generator**, select scopes: `bot`, `applications.commands`, and permissions: `Send Messages`, `Embed Links`, `Read Message History`.
+4. Invite the bot to your Discord server using the generated URL.
+5. Set environment variables / Streamlit secrets:
+   ```env
+   DISCORD_BOT_TOKEN="your_bot_token_here"
+   DISCORD_AUTHORIZED_USERS="123456789012345678,987654321098765432" # Comma-separated Discord User IDs
+   ```
+6. Run the bot:
+   ```bash
+   python discord_bot.py
+   ```
+   *(Can be run locally, on a VPS, or as a background worker on platforms like Render or Railway).*
+
+---
+
+### 2. WhatsApp Bot (`whatsapp_bot.py`)
+
+An official integration using the **Meta WhatsApp Cloud API (Graph API)**. No unofficial web-scraping or browser automation required.
+
+#### Supported Commands (Case-insensitive):
+- `TRACKED`: Returns all tracked games and prices.
+- `GAME <title>`: Returns details and store link for a specific game (e.g. `GAME Skyrim`).
+- `DEALS`: Shows currently discounted games sorted by discount.
+- `OWNED`: Shows purchased games from My Library (restricted to authorized phone numbers).
+- `SEARCH <query>`: Searches tracked games collection (e.g. `SEARCH Witcher`).
+- `REFRESH`: Triggers an application-wide price check (authorized operators only, 5-minute cooldown).
+- `HELP`: Displays command menu and interactive reply buttons.
+
+#### Meta WhatsApp Cloud API Setup:
+1. Register on the [Meta for Developers Portal](https://developers.facebook.com/) and create a Business App with the **WhatsApp** product.
+2. In the WhatsApp dashboard, obtain:
+   - **Phone Number ID**: `WHATSAPP_PHONE_NUMBER_ID`
+   - **System User Permanent Access Token**: `WHATSAPP_ACCESS_TOKEN`
+   - **App Secret** (from App Settings → Basic): `WHATSAPP_APP_SECRET`
+3. Configure your Webhook in Meta App Dashboard:
+   - **Callback URL**: `https://<your-app-domain>/whatsapp/webhook`
+   - **Verify Token**: Choose a secret string (e.g. `my_gametracker_verify_token`) and set as `WHATSAPP_VERIFY_TOKEN`.
+   - Subscribe to the `messages` webhook field.
+4. Set environment variables / Streamlit secrets:
+   ```env
+   WHATSAPP_ACCESS_TOKEN="EAA..."
+   WHATSAPP_PHONE_NUMBER_ID="1006..."
+   WHATSAPP_VERIFY_TOKEN="my_gametracker_verify_token"
+   WHATSAPP_APP_SECRET="c2d4..."
+   WHATSAPP_AUTHORIZED_NUMBERS="+1234567890,+919876543210" # Numbers authorized for library and refresh
+   ```
+5. Test the bot by sending `DEALS` or `HELP` to your registered WhatsApp business phone number!
+
+---
+
+### 3. Bot Security & Protection Against Abuse
+- **Shared Service Layer**: Both bots invoke [bot_service.py](file:///c:/Users/tanisha/Downloads/price-tracker/bot_service.py), guaranteeing unified logic, currency handling, and zero database desynchronization.
+- **Refresh Abuse Protection**: Both `/refresh` and `REFRESH` require operator authorization and enforce an in-memory 5-minute (300-second) cooldown to prevent store API flooding.
+- **Webhook Cryptographic Integrity**: WhatsApp webhooks verify Meta's `X-Hub-Signature-256` header via HMAC SHA-256 using `WHATSAPP_APP_SECRET`.
+- **Private Data Protection**: Access to `OWNED` (My Library) on WhatsApp is restricted to numbers listed in `WHATSAPP_AUTHORIZED_NUMBERS`.
+- **Zero Exposed Secrets**: All tokens, keys, and authorization headers are read from environment variables or Streamlit secrets and masked in logs.
+
 ## Logging
 
 All operations are logged:
