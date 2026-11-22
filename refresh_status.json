@@ -1,0 +1,9 @@
+{
+  "last_automatic_refresh": "2026-11-22T09:31:21.996887+00:00",
+  "next_scheduled_refresh": "2026-11-22T15:31:21.996902+00:00",
+  "status": "partial",
+  "games_checked": 30,
+  "successful_checks": 29,
+  "failed_checks": 1,
+  "refresh_interval_hours": 6
+}
