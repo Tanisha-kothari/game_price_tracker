@@ -6,8 +6,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 1799.0
   },
   "steam_1091500": {
     "2026-11-22": 2999.0,
@@ -16,8 +21,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 2999.0
   },
   "epic_cyberpunk-2077": {
     "2026-11-22": 3205.0,
@@ -26,8 +36,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 3205.0
   },
   "steam_221100": {
     "2026-11-22": 3499.0,
@@ -36,8 +51,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 3499.0
   },
   "steam_251570": {
     "2026-11-22": 1800.0,
@@ -46,8 +66,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 1800.0
   },
   "steam_275850": {
     "2026-11-22": 2400.0,
@@ -56,8 +81,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 2400.0
   },
   "steam_1766060": {
     "2026-11-22": 880.0,
@@ -66,8 +96,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 880.0
   },
   "epic_the-survivalists": {
     "2026-11-22": 1999.0,
@@ -76,8 +111,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 1999.0
   },
   "steam_897450": {
     "2026-11-22": 199.0,
@@ -86,8 +126,13 @@
       "2026-11-22": {
         "is_on_sale": true,
         "discount_percent": 90
+      },
+      "2026-11-23": {
+        "is_on_sale": true,
+        "discount_percent": 90
       }
-    }
+    },
+    "2026-11-23": 199.0
   },
   "epic_home": {
     "2026-11-22": 769.0,
@@ -96,8 +141,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 769.0
   },
   "epic_state-of-decay-2-juggernaut-edition": {
     "2026-11-22": 1117.0,
@@ -106,8 +156,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 1117.0
   },
   "steam_495420": {
     "2026-11-22": 1099.0,
@@ -116,8 +171,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 1099.0
   },
   "steam_2050650": {
     "2026-11-22": 2497.0,
@@ -126,8 +186,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 2497.0
   },
   "steam_322330": {
     "2026-11-22": 459.0,
@@ -136,8 +201,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 459.0
   },
   "steam_356190": {
     "2026-11-22": 2169.0,
@@ -146,8 +216,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 2169.0
   },
   "epic_edge-of-eternity": {
     "2026-11-22": 709.0,
@@ -156,8 +231,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 709.0
   },
   "epic_potion-permit": {
     "2026-11-22": 469.0,
@@ -166,8 +246,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 469.0
   },
   "epic_calico": {
     "2026-11-22": 279.0,
@@ -176,8 +261,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 279.0
   },
   "epic_subnautica": {
     "2026-11-22": 1800.0,
@@ -186,8 +276,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 1800.0
   },
   "epic_subnautica-below-zero": {
     "2026-11-22": 1800.0,
@@ -196,8 +291,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 1800.0
   },
   "steam_1465460": {
     "2026-11-22": 899.0,
@@ -206,8 +306,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 899.0
   },
   "steam_1903340": {
     "2026-11-22": 2999.0,
@@ -216,8 +321,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 2999.0
   },
   "steam_4258070": {
     "2026-11-22": 915.0,
@@ -226,8 +336,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 915.0
   },
   "steam_3061390": {
     "2026-11-22": 499.0,
@@ -236,8 +351,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 499.0
   },
   "steam_4656000": {
     "2026-11-22": 415.0,
@@ -246,8 +366,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 415.0
   },
   "steam_383870": {
     "2026-11-22": 880.0,
@@ -256,8 +381,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 880.0
   },
   "steam_33230": {
     "2026-11-22": 499.0,
@@ -266,8 +396,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 499.0
   },
   "steam_812140": {
     "2026-11-22": 2999.0,
@@ -276,8 +411,13 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 2999.0
   },
   "steam_201870": {
     "2026-11-22": 749.0,
@@ -286,7 +426,12 @@
       "2026-11-22": {
         "is_on_sale": false,
         "discount_percent": 0
+      },
+      "2026-11-23": {
+        "is_on_sale": false,
+        "discount_percent": 0
       }
-    }
+    },
+    "2026-11-23": 749.0
   }
 }
