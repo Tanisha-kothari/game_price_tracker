@@ -8,11 +8,11 @@
         "discount_percent": 0
       },
       "2026-11-23": {
-        "is_on_sale": false,
-        "discount_percent": 0
+        "is_on_sale": true,
+        "discount_percent": 67
       }
     },
-    "2026-11-23": 1799.0
+    "2026-11-23": 1055.0
   },
   "steam_1091500": {
     "2026-11-22": 2999.0,
@@ -218,11 +218,11 @@
         "discount_percent": 0
       },
       "2026-11-23": {
-        "is_on_sale": false,
-        "discount_percent": 0
+        "is_on_sale": true,
+        "discount_percent": 90
       }
     },
-    "2026-11-23": 2169.0
+    "2026-11-23": 216.0
   },
   "epic_edge-of-eternity": {
     "2026-11-22": 709.0,
@@ -368,11 +368,11 @@
         "discount_percent": 0
       },
       "2026-11-23": {
-        "is_on_sale": false,
-        "discount_percent": 0
+        "is_on_sale": true,
+        "discount_percent": 40
       }
     },
-    "2026-11-23": 415.0
+    "2026-11-23": 249.0
   },
   "steam_383870": {
     "2026-11-22": 880.0,
